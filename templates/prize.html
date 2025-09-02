@@ -1,62 +1,39 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>Congratulations!</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <meta charset="UTF-8">
+    <title>Congratulations! 🎉</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        h1 { color: #4CAF50; }
+        .flash { color: red; margin-bottom: 10px; }
+        form { margin-top: 20px; }
+        label { display: block; margin: 10px 0 5px; }
+        input[type="email"] { padding: 8px; width: 300px; }
+        button { margin-top: 15px; padding: 10px 20px; font-size: 16px; }
+        p { max-width: 500px; line-height: 1.5; }
+    </style>
 </head>
 <body>
-  <main class="card">
-    <h1>🎉 Congratulations!</h1>
-    <p>
-      You are the first customer and you have won a special prize!<br>
-      <strong>Unlimited massage sessions</strong> from <strong>20 December</strong> until <strong>6 January</strong>.<br>
-      Appointments available daily from <strong>11:00</strong> till late night (min <strong>6 hours</strong> in advance).
-    </p>
-
-    <section class="section">
-      <h2>Win Your Second Prize</h2>
-      <p>Insert your email to receive your <strong>dinner for two</strong> (valid for the same period, to be taken with Gustino).</p>
-      <form method="POST" class="row">
-        <input type="email" name="email" placeholder="Enter your email" required>
-        <button type="submit">Send Prize Email</button>
-      </form>
-      {% if first_redeem_done %}
-        <p class="info">Prize already redeemed. You can now make reservations below.</p>
-      {% endif %}
-    </section>
-
-    <section class="section">
-      <h2>Book Your Massage</h2>
-      <form method="POST" class="stack">
-        <label>
-          Date (Dec 20 → Jan 6):
-          <input type="date" name="booking_date" required>
-        </label>
-        <label>
-          Time (11:00 → 23:59):
-          <input type="time" name="booking_time" required>
-        </label>
-        <button type="submit">Book</button>
-      </form>
-
-      <h3>Booked Slots</h3>
-      {% if booked %}
-        <ul class="booked-list">
-          {% for b in booked %}
-            <li>{{ b.date if b.date else b["date"] }} at {{ b.time if b.time else b["time"] }}</li>
-          {% endfor %}
-        </ul>
-      {% else %}
-        <p><em>No bookings yet. Calendar is empty until you apply an appointment.</em></p>
-      {% endif %}
-    </section>
+    <h1>🎉 Congratulations! 🎉</h1>
 
     {% with messages = get_flashed_messages() %}
       {% if messages %}
-        <p class="info">{{ messages[0] }}</p>
+        {% for msg in messages %}
+          <div class="flash">{{ msg }}</div>
+        {% endfor %}
       {% endif %}
     {% endwith %}
-  </main>
+
+    <p>
+        You are the first to redeem this code! You have won a **special prize**.  
+        After submitting your email, you will receive the prize details and can continue to book your massage sessions.
+    </p>
+
+    <form method="POST">
+        <label for="email">Enter your email to receive your **special prize**:</label>
+        <input type="email" id="email" name="email" placeholder="your@email.com" required>
+        <button type="submit">Claim Prize</button>
+    </form>
 </body>
 </html>
