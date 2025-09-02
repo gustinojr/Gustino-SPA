@@ -122,4 +122,10 @@ def prize():
             booked.append({"date": date_str, "time": time_str})
 
             try:
-                send_bo_
+                msg = Message("🎉 Congratulations from Gustino’s SPA",
+                              recipients=[email])
+                msg.body = "You have won a dinner for 2 persons in selected restaurants!"
+                mail.send(msg)
+            except Exception as e:
+                print(f"Email sending failed: {e}")
+
