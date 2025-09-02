@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Gustino's SPA Booking</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        h1 { color: #4CAF50; }
+        .flash { color: red; margin-bottom: 10px; }
+        .slot { display: inline-block; margin: 5px; padding: 10px 15px; border-radius: 5px; cursor: pointer; }
+        .available { background-color: #4CAF50; color: white; }
+        .booked { background-color: #ccc; color: #666; cursor: not-allowed; }
+        .slot input { display: none; }
+        button { margin-top: 20px; padding: 10px 20px; font-size: 16px; }
+        .date-picker { margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Book Your Massage</h1>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        {% for msg in messages %}
+          <div class="flash">{{ msg }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST">
+        <div class="date-picker">
+            <label for="booking_date">Select Date:</label>
+            <input type="date" id="booking_date" name="booking_date" value="{{ date_selected }}" onchange="this.form.submit()">
+        </div>
+
+        <h2>Available 2-Hour Slots (11:00 - 23:00)</h2>
+        <div>
+            {% for block in blocks %}
+                <label class="slot {% if block.available %}available{% else %}booked{% endif %}">
+                    {% if block.available %}
+                        <input type="radio" name="block_start" value="{{ block.start }}" required>
+                        {{ block.start }} - {{ block.end }}
+                        <input type="hidden" name="block_end" value="{{ block.end }}">
+                    {% else %}
+                        {{ block.start }} - {{ block.end }} (Booked)
+                    {% endif %}
+                </label>
+            {% endfor %}
+        </div>
+
+        <button type="submit">Book Selected Slot</button>
+    </form>
+</body>
+</html>
