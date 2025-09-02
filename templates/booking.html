@@ -1,87 +1,85 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Gustino's SPA Booking</title>
-    <style>
-        body { font-family: Arial, sans-serif; padding: 20px; }
-        h1 { color: #4CAF50; }
-        .flash { color: red; margin-bottom: 10px; }
-        .slot { display: inline-block; margin: 5px; padding: 10px 15px; border-radius: 5px; cursor: pointer; }
-        .available { background-color: #4CAF50; color: white; }
-        .booked { background-color: #ccc; color: #666; cursor: not-allowed; }
-        .selected { background-color: #FFA500; color: white; }
-        .slot input { display: none; }
-        button { margin-top: 20px; padding: 10px 20px; font-size: 16px; }
-        .date-picker { margin-bottom: 20px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 30px; }
-        table, th, td { border: 1px solid #ddd; }
-        th, td { padding: 10px; text-align: center; }
-        th { background-color: #4CAF50; color: white; }
-    </style>
-    <script>
-        function selectSlot(radio) {
-            // Unmark all
-            document.querySelectorAll('.slot').forEach(el => el.classList.remove('selected'));
-            // Mark clicked slot
-            radio.parentElement.classList.add('selected');
-        }
-    </script>
+  <meta charset="utf-8">
+  <title>Booking - Gustino's SPA</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ cache_slug }}">
 </head>
 <body>
-    <h1>Book Your Massage</h1>
+  <main class="card">
+    <h1>📅 Book Your Massage</h1>
+    <p>Welcome, <strong>{{ user.email }}</strong></p>
 
     {% with messages = get_flashed_messages() %}
       {% if messages %}
-        {% for msg in messages %}
-          <div class="flash">{{ msg }}</div>
-        {% endfor %}
+        <div class="flash">{{ messages[0] }}</div>
       {% endif %}
     {% endwith %}
 
-    <form method="POST">
-        <div class="date-picker">
-            <label for="booking_date">Select Date:</label>
-            <input type="date" id="booking_date" name="booking_date"
-                   value="{{ date_selected }}"
-                   min="{{ first_available_date }}" max="{{ last_available_date }}"
-                   onchange="this.form.submit()">
-        </div>
+    <form method="POST" id="booking-form">
+      <label for="date">Select Date</label>
+      <select id="date" name="date" onchange="renderTimes()">
+        {% for d, slots in slots_by_date.items() %}
+          <option value="{{ d }}" {% if d == default_date %}selected{% endif %}>{{ d }}</option>
+        {% endfor %}
+      </select>
 
-        <h2>Available 2-Hour Slots (11:00 - 23:00)</h2>
-        <div>
-            {% for block in blocks %}
-                <label class="slot {% if block.available %}available{% else %}booked{% endif %}">
-                    {% if block.available %}
-                        <input type="radio" name="block_start" value="{{ block.start }}" required onclick="selectSlot(this)">
-                        {{ block.start }} - {{ block.end }}
-                        <input type="hidden" name="block_end" value="{{ block.end }}">
-                    {% else %}
-                        {{ block.start }} - {{ block.end }} (Booked)
-                    {% endif %}
-                </label>
-            {% endfor %}
-        </div>
+      <label for="time">Select 2-hour slot</label>
+      <select id="time" name="start"></select>
+      <input type="hidden" name="end" id="end">
 
-        <button type="submit">Book Selected Slot</button>
+      <div style="margin-top: 12px;">
+        <button type="submit">Reserve Selected Slot</button>
+      </div>
     </form>
 
-    {% if user_bookings %}
     <h2>Your Reservations</h2>
-    <table>
-        <tr>
-            <th>Date</th>
-            <th>Start</th>
-            <th>End</th>
-        </tr>
-        {% for b in user_bookings %}
-        <tr>
-            <td>{{ b.date }}</td>
-            <td>{{ b.start }}</td>
-            <td>{{ b.end }}</td>
-        </tr>
-        {% endfor %}
-    </table>
+    {% if user_bookings %}
+      <table>
+        <thead><tr><th>Date</th><th>Start</th><th>End</th></tr></thead>
+        <tbody>
+          {% for b in user_bookings %}
+            <tr><td>{{ b.date }}</td><td>{{ b.start }}</td><td>{{ b.end }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p><em>No reservations yet.</em></p>
     {% endif %}
+  </main>
+
+<script>
+  const slots = {{ slots_by_date|tojson }};
+  const dateSelect = document.getElementById('date');
+  const timeSelect = document.getElementById('time');
+  const endInput = document.getElementById('end');
+
+  function renderTimes() {
+    const d = dateSelect.value;
+    const daySlots = slots[d] || [];
+    timeSelect.innerHTML = '';
+    endInput.value = '';
+
+    daySlots.forEach(([start, end]) => {
+      const opt = document.createElement('option');
+      opt.value = start;
+      opt.textContent = `${start} — ${end}`;
+      opt.dataset.end = end;
+      timeSelect.appendChild(opt);
+    });
+
+    if (timeSelect.options.length > 0) {
+      endInput.value = timeSelect.options[0].dataset.end;
+    }
+  }
+
+  timeSelect?.addEventListener('change', (e) => {
+    const selected = e.target.selectedOptions[0];
+    if (selected) endInput.value = selected.dataset.end;
+  });
+
+  // initial render
+  renderTimes();
+</script>
 </body>
 </html>
