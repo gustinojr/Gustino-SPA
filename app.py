@@ -21,14 +21,12 @@ mail = Mail(app)
 ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL')
 VALID_CODE = os.environ.get('VALID_CODE', 'GUSTINO2025')
 
-# --- Promo window (cross-year) ---
-PROMO_START = datetime(2025, 12, 20, 0, 0, 0)
+# --- Promo window ---
+PROMO_START = datetime(2025, 12, 20, 0, 0)
 PROMO_END = datetime(2026, 1, 6, 23, 59, 59)
-OPEN_TIME = time(11, 0)
-CLOSE_TIME = time(23, 59)
 
-# --- In-memory state ---
-booked = []  # {"date": "YYYY-MM-DD", "start": "HH:MM", "end": "HH:MM"}
+# --- In-memory storage ---
+booked = []  # {"date": "YYYY-MM-DD", "start": "HH:MM", "end": "HH:MM", "email": "user@email.com"}
 first_redeem_done = False
 customer_email = None
 
@@ -54,13 +52,9 @@ def is_block_available(date_str, block):
             booked_end = datetime.strptime(b["end"], "%H:%M").time()
             block_start = datetime.strptime(block["start"], "%H:%M").time()
             block_end = datetime.strptime(block["end"], "%H:%M").time()
-            # Overlap check
             if (block_start < booked_end) and (block_end > booked_start):
                 return False
     return True
-
-def is_within_promo_window(dt: datetime):
-    return PROMO_START <= dt <= PROMO_END
 
 def is_at_least_6h_in_advance(slot_dt: datetime, now: datetime):
     return slot_dt - now >= timedelta(hours=6)
@@ -76,10 +70,8 @@ def index():
             return redirect(url_for("index"))
 
         if not first_redeem_done:
-            # First redeem → prize page
             return redirect(url_for("prize"))
         else:
-            # Subsequent redeems → booking page
             return redirect(url_for("booking"))
     return render_template("index.html")
 
@@ -87,13 +79,11 @@ def index():
 @app.route("/prize", methods=["GET", "POST"])
 def prize():
     global first_redeem_done, customer_email
-
     if request.method == "POST":
         email = request.form.get("email", "").strip()
         if not email:
-            flash("Please enter a valid email address.")
+            flash("Please enter a valid email.")
             return redirect(url_for("prize"))
-
         customer_email = email
         try:
             send_prize_email(customer_email)
@@ -102,14 +92,11 @@ def prize():
         except Exception as e:
             flash(f"Error sending prize email: {e}")
             return redirect(url_for("prize"))
-
     return render_template("prize.html")
 
 
 @app.route("/prize_success")
 def prize_success():
-    # Shows success message + "Continue" button
-    # Button should redirect to /booking
     return render_template("prize_success.html")
 
 
@@ -120,8 +107,10 @@ def booking():
         flash("Please redeem first to enter your email.")
         return redirect(url_for("index"))
 
-    # Date selected (default today)
+    # Selected date (default today)
     date_selected = request.form.get("booking_date", datetime.now().strftime("%Y-%m-%d"))
+
+    # Generate blocks and mark availability
     blocks = generate_time_blocks()
     for block in blocks:
         block["available"] = is_block_available(date_selected, block)
@@ -141,7 +130,13 @@ def booking():
             flash("Bookings must be at least 6 hours in advance.")
             return redirect(url_for("booking"))
 
-        booked.append({"date": date_selected, "start": block_start, "end": block_end})
+        booked.append({
+            "date": date_selected,
+            "start": block_start,
+            "end": block_end,
+            "email": customer_email
+        })
+
         try:
             send_booking_emails(customer_email, date_selected, block_start, block_end)
             flash(f"Reservation confirmed for {date_selected} {block_start}-{block_end}. Check your email!")
@@ -149,13 +144,10 @@ def booking():
             flash(f"Error sending booking emails: {e}")
         return redirect(url_for("booking"))
 
-    return render_template("booking.html", date_selected=date_selected, blocks=blocks)
+    # User's booking recap
+    user_bookings = [b for b in booked if b["email"] == customer_email]
 
-
-@app.route("/confirmation")
-def confirmation():
-    email = request.args.get("email")
-    return render_template("confirmation.html", email=email)
+    return render_template("booking.html", date_selected=date_selected, blocks=blocks, user_bookings=user_bookings)
 
 
 # --- Email functions ---
@@ -184,6 +176,5 @@ def send_booking_emails(recipient, date_str, start, end):
         mail.send(Message(subject_admin, recipients=[ADMIN_EMAIL], body=body_admin))
 
 
-# --- Run app ---
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
