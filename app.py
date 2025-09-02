@@ -54,7 +54,7 @@ def is_block_available(date_str, block):
             booked_end = datetime.strptime(b["end"], "%H:%M").time()
             block_start = datetime.strptime(block["start"], "%H:%M").time()
             block_end = datetime.strptime(block["end"], "%H:%M").time()
-            # Check overlap
+            # Overlap check
             if (block_start < booked_end) and (block_end > booked_start):
                 return False
     return True
@@ -68,15 +68,21 @@ def is_at_least_6h_in_advance(slot_dt: datetime, now: datetime):
 # --- Routes ---
 @app.route("/", methods=["GET", "POST"])
 def index():
+    global first_redeem_done
     if request.method == "POST":
         code = request.form.get("redeem_code", "").strip()
-        if code == VALID_CODE:
-            if not first_redeem_done:
-                return redirect(url_for("prize"))
-            else:
-                return redirect(url_for("booking"))
-        flash("❌ Invalid redeem code. Try again.")
+        if code != VALID_CODE:
+            flash("❌ Invalid redeem code. Try again.")
+            return redirect(url_for("index"))
+
+        if not first_redeem_done:
+            # First redeem → prize page
+            return redirect(url_for("prize"))
+        else:
+            # Subsequent redeems → booking page
+            return redirect(url_for("booking"))
     return render_template("index.html")
+
 
 @app.route("/prize", methods=["GET", "POST"])
 def prize():
@@ -92,12 +98,20 @@ def prize():
         try:
             send_prize_email(customer_email)
             first_redeem_done = True
-            return redirect(url_for("confirmation", email=customer_email))
+            return redirect(url_for("prize_success"))
         except Exception as e:
             flash(f"Error sending prize email: {e}")
             return redirect(url_for("prize"))
 
     return render_template("prize.html")
+
+
+@app.route("/prize_success")
+def prize_success():
+    # Shows success message + "Continue" button
+    # Button should redirect to /booking
+    return render_template("prize_success.html")
+
 
 @app.route("/booking", methods=["GET", "POST"])
 def booking():
@@ -106,25 +120,27 @@ def booking():
         flash("Please redeem first to enter your email.")
         return redirect(url_for("index"))
 
+    # Date selected (default today)
     date_selected = request.form.get("booking_date", datetime.now().strftime("%Y-%m-%d"))
     blocks = generate_time_blocks()
     for block in blocks:
         block["available"] = is_block_available(date_selected, block)
 
+    # Handle booking submission
     if request.method == "POST" and "block_start" in request.form:
         block_start = request.form.get("block_start")
         block_end = request.form.get("block_end")
-        # Validate block availability
         block = {"start": block_start, "end": block_end}
+
         if not is_block_available(date_selected, block):
             flash("Selected time slot is already booked.")
             return redirect(url_for("booking"))
+
         slot_dt = datetime.strptime(f"{date_selected} {block_start}", "%Y-%m-%d %H:%M")
         if not is_at_least_6h_in_advance(slot_dt, datetime.now()):
             flash("Bookings must be at least 6 hours in advance.")
             return redirect(url_for("booking"))
 
-        # Save booking
         booked.append({"date": date_selected, "start": block_start, "end": block_end})
         try:
             send_booking_emails(customer_email, date_selected, block_start, block_end)
@@ -135,10 +151,12 @@ def booking():
 
     return render_template("booking.html", date_selected=date_selected, blocks=blocks)
 
+
 @app.route("/confirmation")
 def confirmation():
     email = request.args.get("email")
     return render_template("confirmation.html", email=email)
+
 
 # --- Email functions ---
 def send_prize_email(recipient):
@@ -152,6 +170,7 @@ def send_prize_email(recipient):
     msg = Message(subject, recipients=[recipient], body=body)
     mail.send(msg)
 
+
 def send_booking_emails(recipient, date_str, start, end):
     # Customer confirmation
     subject_customer = "✅ Your Massage Reservation is Confirmed"
@@ -163,6 +182,7 @@ def send_booking_emails(recipient, date_str, start, end):
         subject_admin = "📅 New Massage Booking"
         body_admin = f"Customer: {recipient}\nDate: {date_str}\nTime: {start}-{end}"
         mail.send(Message(subject_admin, recipients=[ADMIN_EMAIL], body=body_admin))
+
 
 # --- Run app ---
 if __name__ == "__main__":
