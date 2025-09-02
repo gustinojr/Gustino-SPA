@@ -1,15 +1,15 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Prize Confirmed</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <title>Confirmed</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ cache_slug }}">
 </head>
 <body>
   <main class="card">
-    <h1>🎁 Email Sent!</h1>
-    <p>Congratulations! An email has been sent to <strong>{{ email }}</strong> with details of your special dinner prize.</p>
-    <p><a href="{{ url_for('prize') }}">Back to Prize Page</a></p>
+    <h1>✅ Done</h1>
+    <p>Your request completed.</p>
+    <a href="{{ url_for('index') }}">Back to home</a>
   </main>
 </body>
 </html>
