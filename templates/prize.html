@@ -1,39 +1,20 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Congratulations! 🎉</title>
-    <style>
-        body { font-family: Arial, sans-serif; padding: 20px; }
-        h1 { color: #4CAF50; }
-        .flash { color: red; margin-bottom: 10px; }
-        form { margin-top: 20px; }
-        label { display: block; margin: 10px 0 5px; }
-        input[type="email"] { padding: 8px; width: 300px; }
-        button { margin-top: 15px; padding: 10px 20px; font-size: 16px; }
-        p { max-width: 500px; line-height: 1.5; }
-    </style>
+  <meta charset="utf-8">
+  <title>Prize - Gustino's SPA</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ cache_slug }}">
 </head>
 <body>
-    <h1>🎉 Congratulations! 🎉</h1>
+  <main class="card">
+    <h1>🎉 Congratulations!</h1>
+    <p>You are eligible for the special prize: <strong>Dinner for 2</strong> (valid {{ promo_start.strftime('%b %d, %Y') }} → {{ promo_end.strftime('%b %d, %Y') }}).</p>
 
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        {% for msg in messages %}
-          <div class="flash">{{ msg }}</div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
-
-    <p>
-        You are the first to redeem this code! You have won a **special prize**.  
-        After submitting your email, you will receive the prize details and can continue to book your massage sessions.
-    </p>
+    <p>Click below to claim the prize and receive details by email, then continue to booking.</p>
 
     <form method="POST">
-        <label for="email">Enter your email to receive your **special prize**:</label>
-        <input type="email" id="email" name="email" placeholder="your@email.com" required>
-        <button type="submit">Claim Prize</button>
+      <button type="submit">Claim Prize & Continue</button>
     </form>
+  </main>
 </body>
 </html>
