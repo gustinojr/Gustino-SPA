@@ -19,7 +19,7 @@ mail = Mail(app)
 
 # --- Admin and redeem code ---
 ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL')
-VALID_CODE = os.environ.get('VALID_CODE', 'GUSTINO2025')
+VALID_CODE = os.environ.get('VALID_CODE')
 
 # --- Promo window (full datetime, cross-year) ---
 PROMO_START = datetime(2025, 12, 20, 0, 0, 0)
