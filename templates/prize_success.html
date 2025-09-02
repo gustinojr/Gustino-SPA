@@ -1,24 +1,17 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Prize Claimed!</title>
-    <style>
-        body { font-family: Arial, sans-serif; padding: 20px; text-align: center; }
-        h1 { color: #4CAF50; }
-        p { max-width: 500px; margin: 20px auto; line-height: 1.5; }
-        button { padding: 12px 25px; font-size: 16px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; }
-        button:hover { background-color: #45a049; }
-    </style>
+  <meta charset="utf-8">
+  <title>Prize Claimed</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ cache_slug }}">
 </head>
 <body>
-    <h1>🎉 Prize Claimed Successfully! 🎉</h1>
-    <p>
-        Congratulations! The prize email has been sent to your inbox.<br>
-        You can now continue to book your massage sessions.
-    </p>
-    <form action="{{ url_for('booking') }}" method="get">
-        <button type="submit">Continue to Booking</button>
+  <main class="card">
+    <h1>✅ Prize Claimed</h1>
+    <p>The prize email has been sent to {{ user.email }}.</p>
+    <form action="{{ url_for('booking', user_id=user.id) }}" method="get">
+      <button type="submit">Continue to Booking</button>
     </form>
+  </main>
 </body>
 </html>
