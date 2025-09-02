@@ -62,6 +62,19 @@ class Booking(Base):
 
 Base.metadata.create_all(bind=engine)
 
+@app.route("/prize/<int:user_id>")
+def prize(user_id):
+    user = User.query.get(user_id)
+    if not user:
+        return redirect(url_for("index"))
+
+    return render_template(
+        "prize.html",
+        user=user,
+        promo_start=PROMO_START,
+        promo_end=PROMO_END
+    )
+
 # Utility to provide DB session per request
 @app.before_request
 def open_db_session():
