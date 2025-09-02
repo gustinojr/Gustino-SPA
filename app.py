@@ -17,22 +17,6 @@ CLOSE_HOUR = 23  # last block starts at 21:00 (21-23). We'll create blocks until
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", os.urandom(24).hex())
 
-# flag to know if the app is "ready"
-is_ready = False
-
-@app.before_first_request
-def startup_tasks():
-    global is_ready
-    # Simulate some init tasks (db migration, cache, etc.)
-    time.sleep(5)  
-    is_ready = True
-
-@app.route("/")
-def index():
-    if not is_ready:
-        return render_template("loading.html")
-    return render_template("index.html")
-
 # Mail (use Gmail App Password or SendGrid — set env vars accordingly)
 app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
 app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
