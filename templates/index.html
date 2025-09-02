@@ -1,24 +1,29 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Welcome - Gustino's SPA</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <title>Gustino's SPA - Redeem</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ cache_slug }}">
 </head>
 <body>
   <main class="card">
     <h1>Welcome to Gustino's SPA</h1>
-    <p>Enter your redeem code from the coupon:</p>
-    <form method="POST" class="stack">
-      <input type="text" name="redeem_code" placeholder="Enter code" required>
-      <button type="submit">Redeem</button>
-    </form>
 
     {% with messages = get_flashed_messages() %}
       {% if messages %}
-        <p class="error">{{ messages[0] }}</p>
+        <div class="flash">{{ messages[0] }}</div>
       {% endif %}
     {% endwith %}
+
+    <form method="POST" class="stack">
+      <label>Redeem Code</label>
+      <input type="text" name="redeem_code" placeholder="Enter code" required>
+
+      <label>Your Email</label>
+      <input type="email" name="email" placeholder="you@email.com" required>
+
+      <button type="submit">Redeem</button>
+    </form>
   </main>
 </body>
 </html>
