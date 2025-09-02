@@ -11,11 +11,9 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "supersecretkey")
 
 # PostgreSQL config for Render
-DB_USER = os.environ.get("DB_USER")
-DB_PASS = os.environ.get("DB_PASS")
-DB_HOST = os.environ.get("DB_HOST")
-DB_NAME = os.environ.get("DB_NAME")
-app.config['SQLALCHEMY_DATABASE_URI'] = f"os.environ.get("DATABASE_URL")"
+
+DB_HOST = os.environ.get("DATABASE_URL")
+app.config['SQLALCHEMY_DATABASE_URI'] = f"{"DATABASE_URL"}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
