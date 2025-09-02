@@ -13,7 +13,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "supersecretkey")
 # PostgreSQL config for Render
 
 DB_HOST = os.environ.get("DATABASE_URL")
-app.config['SQLALCHEMY_DATABASE_URI'] = f"{"DATABASE_URL"}"
+app.config['SQLALCHEMY_DATABASE_URI'] = f"{DATABASE_URL}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
