@@ -7,39 +7,60 @@ from flask_mail import Mail, Message
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 
-# --- Mail setup ---
+# --- Gmail Mail setup ---
 app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
 app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
 app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'true').lower() == 'true'
 app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
-app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')  # Gmail App Password
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', app.config['MAIL_USERNAME'])
 
 mail = Mail(app)
 
 # --- Admin and redeem code ---
 ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL')
-VALID_CODE = os.environ.get('VALID_CODE')
+VALID_CODE = os.environ.get('VALID_CODE', 'GUSTINO2025')
 
-# --- Promo window (full datetime, cross-year) ---
+# --- Promo window (cross-year) ---
 PROMO_START = datetime(2025, 12, 20, 0, 0, 0)
 PROMO_END = datetime(2026, 1, 6, 23, 59, 59)
-
-# --- Allowed hours ---
 OPEN_TIME = time(11, 0)
 CLOSE_TIME = time(23, 59)
 
 # --- In-memory state ---
-booked = []
+booked = []  # {"date": "YYYY-MM-DD", "start": "HH:MM", "end": "HH:MM"}
 first_redeem_done = False
 customer_email = None
 
 # --- Helpers ---
+def generate_time_blocks():
+    blocks = []
+    start_hour = 11
+    end_hour = 23
+    while start_hour < end_hour:
+        block_start = time(start_hour, 0)
+        block_end = time(start_hour + 2, 0)
+        blocks.append({
+            "start": block_start.strftime("%H:%M"),
+            "end": block_end.strftime("%H:%M")
+        })
+        start_hour += 2
+    return blocks
+
+def is_block_available(date_str, block):
+    for b in booked:
+        if b["date"] == date_str:
+            booked_start = datetime.strptime(b["start"], "%H:%M").time()
+            booked_end = datetime.strptime(b["end"], "%H:%M").time()
+            block_start = datetime.strptime(block["start"], "%H:%M").time()
+            block_end = datetime.strptime(block["end"], "%H:%M").time()
+            # Check overlap
+            if (block_start < booked_end) and (block_end > booked_start):
+                return False
+    return True
+
 def is_within_promo_window(dt: datetime):
     return PROMO_START <= dt <= PROMO_END
-
-def is_time_allowed(t: time):
-    return OPEN_TIME <= t <= CLOSE_TIME
 
 def is_at_least_6h_in_advance(slot_dt: datetime, now: datetime):
     return slot_dt - now >= timedelta(hours=6)
@@ -50,71 +71,69 @@ def index():
     if request.method == "POST":
         code = request.form.get("redeem_code", "").strip()
         if code == VALID_CODE:
-            return redirect(url_for("prize"))
+            if not first_redeem_done:
+                return redirect(url_for("prize"))
+            else:
+                return redirect(url_for("booking"))
         flash("❌ Invalid redeem code. Try again.")
     return render_template("index.html")
 
 @app.route("/prize", methods=["GET", "POST"])
 def prize():
-    global first_redeem_done, customer_email, booked
+    global first_redeem_done, customer_email
 
     if request.method == "POST":
-        # --- Redeem prize email ---
-        if "email" in request.form:
-            customer_email = request.form.get("email", "").strip()
-            if not customer_email:
-                flash("Please enter a valid email address.")
-                return redirect(url_for("prize"))
-
-            if not first_redeem_done:
-                try:
-                    send_prize_email(customer_email)
-                    first_redeem_done = True
-                    return redirect(url_for("confirmation", email=customer_email))
-                except Exception as e:
-                    flash(f"Error sending prize email: {e}")
-            else:
-                flash("Prize already redeemed. You can now book sessions.")
+        email = request.form.get("email", "").strip()
+        if not email:
+            flash("Please enter a valid email address.")
             return redirect(url_for("prize"))
 
-        # --- Booking form ---
-        if "booking_date" in request.form and "booking_time" in request.form:
-            if not customer_email:
-                flash("Please enter your email first.")
-                return redirect(url_for("prize"))
-
-            date_str = request.form.get("booking_date")
-            time_str = request.form.get("booking_time")
-            try:
-                slot_date = datetime.strptime(date_str, "%Y-%m-%d").date()
-                slot_time = datetime.strptime(time_str, "%H:%M").time()
-                slot_dt = datetime.combine(slot_date, slot_time)
-                now = datetime.now()
-            except ValueError:
-                flash("Invalid date/time format.")
-                return redirect(url_for("prize"))
-
-            if not is_within_promo_window(slot_dt):
-                flash("Bookings only allowed from Dec 20, 2025 to Jan 6, 2026.")
-                return redirect(url_for("prize"))
-
-            if not is_time_allowed(slot_time):
-                flash("Booking time must be between 11:00 and 23:59.")
-                return redirect(url_for("prize"))
-
-            if not is_at_least_6h_in_advance(slot_dt, now):
-                flash("Bookings must be made at least 6 hours in advance.")
-                return redirect(url_for("prize"))
-
-            booked.append({"date": date_str, "time": time_str})
-            try:
-                send_booking_emails(customer_email, date_str, time_str)
-                flash(f"Reservation confirmed for {date_str} at {time_str}. Check your email!")
-            except Exception as e:
-                flash(f"Error sending reservation emails: {e}")
+        customer_email = email
+        try:
+            send_prize_email(customer_email)
+            first_redeem_done = True
+            return redirect(url_for("confirmation", email=customer_email))
+        except Exception as e:
+            flash(f"Error sending prize email: {e}")
             return redirect(url_for("prize"))
 
-    return render_template("prize.html", booked=booked, first_redeem_done=first_redeem_done)
+    return render_template("prize.html")
+
+@app.route("/booking", methods=["GET", "POST"])
+def booking():
+    global booked, customer_email
+    if not customer_email:
+        flash("Please redeem first to enter your email.")
+        return redirect(url_for("index"))
+
+    date_selected = request.form.get("booking_date", datetime.now().strftime("%Y-%m-%d"))
+    blocks = generate_time_blocks()
+    for block in blocks:
+        block["available"] = is_block_available(date_selected, block)
+
+    if request.method == "POST" and "block_start" in request.form:
+        block_start = request.form.get("block_start")
+        block_end = request.form.get("block_end")
+        # Validate block availability
+        block = {"start": block_start, "end": block_end}
+        if not is_block_available(date_selected, block):
+            flash("Selected time slot is already booked.")
+            return redirect(url_for("booking"))
+        slot_dt = datetime.strptime(f"{date_selected} {block_start}", "%Y-%m-%d %H:%M")
+        if not is_at_least_6h_in_advance(slot_dt, datetime.now()):
+            flash("Bookings must be at least 6 hours in advance.")
+            return redirect(url_for("booking"))
+
+        # Save booking
+        booked.append({"date": date_selected, "start": block_start, "end": block_end})
+        try:
+            send_booking_emails(customer_email, date_selected, block_start, block_end)
+            flash(f"Reservation confirmed for {date_selected} {block_start}-{block_end}. Check your email!")
+        except Exception as e:
+            flash(f"Error sending booking emails: {e}")
+        return redirect(url_for("booking"))
+
+    return render_template("booking.html", date_selected=date_selected, blocks=blocks)
 
 @app.route("/confirmation")
 def confirmation():
@@ -122,29 +141,29 @@ def confirmation():
     return render_template("confirmation.html", email=email)
 
 # --- Email functions ---
-def send_prize_email(recipient: str):
+def send_prize_email(recipient):
     subject = "🎉 Congratulations from Gustino's SPA!"
     body = (
-        "Dear Guest,\n\n"
-        "Congratulations! You have won a Dinner for 2 persons in selected restaurants with Gustino.\n\n"
-        "Offer valid Dec 20, 2025 → Jan 6, 2026.\n\n"
-        "With love,\nGustino's SPA"
+        f"Dear Guest,\n\n"
+        f"Congratulations! You have won a Dinner for 2 persons in selected restaurants with Gustino.\n"
+        f"Offer valid Dec 20, 2025 → Jan 6, 2026.\n\n"
+        f"With love,\nGustino's SPA"
     )
     msg = Message(subject, recipients=[recipient], body=body)
     mail.send(msg)
 
-def send_booking_emails(recipient: str, date_str: str, time_str: str):
+def send_booking_emails(recipient, date_str, start, end):
     # Customer confirmation
     subject_customer = "✅ Your Massage Reservation is Confirmed"
-    body_customer = f"Your massage is confirmed for {date_str} at {time_str}."
+    body_customer = f"Your massage is confirmed for {date_str} from {start} to {end}."
     mail.send(Message(subject_customer, recipients=[recipient], body=body_customer))
 
     # Admin notification
     if ADMIN_EMAIL:
         subject_admin = "📅 New Massage Booking"
-        body_admin = f"Customer: {recipient}\nDate: {date_str}\nTime: {time_str}"
+        body_admin = f"Customer: {recipient}\nDate: {date_str}\nTime: {start}-{end}"
         mail.send(Message(subject_admin, recipients=[ADMIN_EMAIL], body=body_admin))
 
-# --- Run ---
+# --- Run app ---
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
