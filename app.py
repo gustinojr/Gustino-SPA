@@ -110,15 +110,22 @@ def booking():
 
     # Determine default date
     today = datetime.now().date()
-    first_available_date = max(today, PROMO_START.date())
-    last_available_date = PROMO_END.date()
+
+    # Default to today if it's within the promo window, otherwise first promo day
+    if PROMO_START.date() <= today <= PROMO_END.date():
+        default_date = today
+    else:
+        default_date = PROMO_START.date()
 
     # Selected date from form or default
     date_selected_str = request.form.get("booking_date")
     if date_selected_str:
         date_selected = datetime.strptime(date_selected_str, "%Y-%m-%d").date()
     else:
-        date_selected = first_available_date
+        date_selected = default_date
+
+    first_available_date = PROMO_START.date()
+    last_available_date = PROMO_END.date()
 
     # Generate blocks and mark availability
     blocks = generate_time_blocks()
