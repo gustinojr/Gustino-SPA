@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: gustino-spa
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --workers=2 --threads=8 --timeout=60
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: VALID_CODE
+        value: GUSTINO2025
+      - key: ADMIN_EMAIL
+        value: your-admin@email.com
+      - key: MAIL_SERVER
+        value: smtp.gmail.com
+      - key: MAIL_PORT
+        value: 587
+      - key: MAIL_USE_TLS
+        value: "true"
+      - key: MAIL_USERNAME
+        sync: false     # set in Render Dashboard
+      - key: MAIL_PASSWORD
+        sync: false     # set in Render Dashboard
+      - key: MAIL_DEFAULT_SENDER
+        sync: false     # set in Render Dashboard
