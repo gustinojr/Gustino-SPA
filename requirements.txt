@@ -1,4 +1,6 @@
-flask==3.0.3
-flask-mail==0.10.0
-gunicorn==22.0.0
-qrcode[pil]==7.4.2
+Flask==2.3.3
+Flask-Mail==0.10.1
+SQLAlchemy==2.0.22
+psycopg2-binary==2.9.7
+python-dotenv==1.0.0
+gunicorn==23.1.0
