@@ -10,10 +10,23 @@
         .slot { display: inline-block; margin: 5px; padding: 10px 15px; border-radius: 5px; cursor: pointer; }
         .available { background-color: #4CAF50; color: white; }
         .booked { background-color: #ccc; color: #666; cursor: not-allowed; }
+        .selected { background-color: #FFA500; color: white; }
         .slot input { display: none; }
         button { margin-top: 20px; padding: 10px 20px; font-size: 16px; }
         .date-picker { margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 30px; }
+        table, th, td { border: 1px solid #ddd; }
+        th, td { padding: 10px; text-align: center; }
+        th { background-color: #4CAF50; color: white; }
     </style>
+    <script>
+        function selectSlot(radio) {
+            // Unmark all
+            document.querySelectorAll('.slot').forEach(el => el.classList.remove('selected'));
+            // Mark clicked slot
+            radio.parentElement.classList.add('selected');
+        }
+    </script>
 </head>
 <body>
     <h1>Book Your Massage</h1>
@@ -29,7 +42,10 @@
     <form method="POST">
         <div class="date-picker">
             <label for="booking_date">Select Date:</label>
-            <input type="date" id="booking_date" name="booking_date" value="{{ date_selected }}" onchange="this.form.submit()">
+            <input type="date" id="booking_date" name="booking_date"
+                   value="{{ date_selected }}"
+                   min="2025-12-20" max="2026-01-06"
+                   onchange="this.form.submit()">
         </div>
 
         <h2>Available 2-Hour Slots (11:00 - 23:00)</h2>
@@ -37,7 +53,7 @@
             {% for block in blocks %}
                 <label class="slot {% if block.available %}available{% else %}booked{% endif %}">
                     {% if block.available %}
-                        <input type="radio" name="block_start" value="{{ block.start }}" required>
+                        <input type="radio" name="block_start" value="{{ block.start }}" required onclick="selectSlot(this)">
                         {{ block.start }} - {{ block.end }}
                         <input type="hidden" name="block_end" value="{{ block.end }}">
                     {% else %}
@@ -49,5 +65,23 @@
 
         <button type="submit">Book Selected Slot</button>
     </form>
+
+    {% if user_bookings %}
+    <h2>Your Reservations</h2>
+    <table>
+        <tr>
+            <th>Date</th>
+            <th>Start</th>
+            <th>End</th>
+        </tr>
+        {% for b in user_bookings %}
+        <tr>
+            <td>{{ b.date }}</td>
+            <td>{{ b.start }}</td>
+            <td>{{ b.end }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% endif %}
 </body>
 </html>
