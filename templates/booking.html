@@ -44,7 +44,7 @@
             <label for="booking_date">Select Date:</label>
             <input type="date" id="booking_date" name="booking_date"
                    value="{{ date_selected }}"
-                   min="2025-12-20" max="2026-01-06"
+                   min="{{ first_available_date }}" max="{{ last_available_date }}"
                    onchange="this.form.submit()">
         </div>
 
