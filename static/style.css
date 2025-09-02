@@ -1,85 +1,10 @@
-:root {
-  --bg: #f6f7fb;
-  --fg: #141622;
-  --muted: #6b7280;
-  --card: #ffffff;
-  --accent: #4f46e5;
-  --accent-2: #10b981;
-  --danger: #ef4444;
-}
-
-* { box-sizing: border-box; }
-
-body {
-  margin: 0;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-  background: var(--bg);
-  color: var(--fg);
-  display: grid;
-  place-items: center;
-  min-height: 100vh;
-  padding: 24px;
-}
-
-.card {
-  width: min(720px, 100%);
-  background: var(--card);
-  border-radius: 20px;
-  padding: 28px;
-  box-shadow: 0 10px 30px rgba(20,22,34,0.06);
-}
-
-h1 { margin: 0 0 12px; font-size: 28px; }
-h2 { margin: 20px 0 8px; font-size: 20px; }
-h3 { margin: 16px 0 8px; font-size: 16px; color: var(--muted); }
-
-p { color: var(--fg); line-height: 1.5; }
-em { color: var(--muted); }
-
-.section { margin-top: 24px; }
-
-form { margin: 10px 0; }
-
-.stack { display: grid; gap: 10px; }
-.row { display: flex; gap: 10px; flex-wrap: wrap; }
-
-input, button, label {
-  font-size: 16px;
-}
-
-input[type="text"],
-input[type="email"],
-input[type="date"],
-input[type="time"] {
-  padding: 10px 12px;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  outline: none;
-  width: 100%;
-}
-
-button {
-  padding: 10px 14px;
-  border: 0;
-  border-radius: 10px;
-  background: var(--accent);
-  color: white;
-  cursor: pointer;
-}
-
-button:hover { filter: brightness(1.08); }
-
-.info { color: var(--accent-2); font-weight: 600; }
-.error { color: var(--danger); font-weight: 600; }
-
-.booked-list {
-  list-style: none;
-  padding: 0;
-  margin: 8px 0 0;
-}
-.booked-list li {
-  padding: 8px 12px;
-  background: #f3f4f6;
-  border-radius: 8px;
-  margin-bottom: 6px;
-}
+body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; background:#f6f7fb; color:#111; padding:24px; }
+.card { max-width:760px; margin:0 auto; background:#fff; padding:24px; border-radius:12px; box-shadow:0 10px 30px rgba(20,22,34,0.06); }
+h1 { margin:0 0 12px; color:#111; }
+label { display:block; margin-top:12px; font-weight:600; }
+input[type="text"], input[type="email"], select { width:100%; padding:10px; margin-top:6px; border-radius:8px; border:1px solid #e6e9ef; }
+button { margin-top:14px; padding:10px 16px; border-radius:8px; background:#4f46e5; color:white; border:0; cursor:pointer; }
+.flash { color: #b91c1c; margin-bottom:10px; }
+table { width:100%; border-collapse:collapse; margin-top:12px; }
+th, td { padding:10px; border:1px solid #eee; text-align:center; }
+th { background:#f3f4f6; }
