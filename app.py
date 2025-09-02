@@ -1,5 +1,5 @@
 import os
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta, time, date
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_mail import Mail, Message
 
@@ -52,6 +52,7 @@ def is_block_available(date_str, block):
             booked_end = datetime.strptime(b["end"], "%H:%M").time()
             block_start = datetime.strptime(block["start"], "%H:%M").time()
             block_end = datetime.strptime(block["end"], "%H:%M").time()
+            # overlap check
             if (block_start < booked_end) and (block_end > booked_start):
                 return False
     return True
@@ -107,13 +108,22 @@ def booking():
         flash("Please redeem first to enter your email.")
         return redirect(url_for("index"))
 
-    # Selected date (default today)
-    date_selected = request.form.get("booking_date", datetime.now().strftime("%Y-%m-%d"))
+    # Determine default date
+    today = datetime.now().date()
+    first_available_date = max(today, PROMO_START.date())
+    last_available_date = PROMO_END.date()
+
+    # Selected date from form or default
+    date_selected_str = request.form.get("booking_date")
+    if date_selected_str:
+        date_selected = datetime.strptime(date_selected_str, "%Y-%m-%d").date()
+    else:
+        date_selected = first_available_date
 
     # Generate blocks and mark availability
     blocks = generate_time_blocks()
     for block in blocks:
-        block["available"] = is_block_available(date_selected, block)
+        block["available"] = is_block_available(date_selected.strftime("%Y-%m-%d"), block)
 
     # Handle booking submission
     if request.method == "POST" and "block_start" in request.form:
@@ -121,7 +131,7 @@ def booking():
         block_end = request.form.get("block_end")
         block = {"start": block_start, "end": block_end}
 
-        if not is_block_available(date_selected, block):
+        if not is_block_available(date_selected.strftime("%Y-%m-%d"), block):
             flash("Selected time slot is already booked.")
             return redirect(url_for("booking"))
 
@@ -131,23 +141,28 @@ def booking():
             return redirect(url_for("booking"))
 
         booked.append({
-            "date": date_selected,
+            "date": date_selected.strftime("%Y-%m-%d"),
             "start": block_start,
             "end": block_end,
             "email": customer_email
         })
 
         try:
-            send_booking_emails(customer_email, date_selected, block_start, block_end)
+            send_booking_emails(customer_email, date_selected.strftime("%Y-%m-%d"), block_start, block_end)
             flash(f"Reservation confirmed for {date_selected} {block_start}-{block_end}. Check your email!")
         except Exception as e:
             flash(f"Error sending booking emails: {e}")
         return redirect(url_for("booking"))
 
-    # User's booking recap
+    # User booking recap
     user_bookings = [b for b in booked if b["email"] == customer_email]
 
-    return render_template("booking.html", date_selected=date_selected, blocks=blocks, user_bookings=user_bookings)
+    return render_template("booking.html",
+                           date_selected=date_selected,
+                           first_available_date=first_available_date,
+                           last_available_date=last_available_date,
+                           blocks=blocks,
+                           user_bookings=user_bookings)
 
 
 # --- Email functions ---
