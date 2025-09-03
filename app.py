@@ -186,6 +186,9 @@ def booking(user_id):
         reservations=reservations
     )
 
+@app.template_filter('datetimeformat')
+def datetimeformat(value, fmt='%H:%M'):
+    return value.strftime(fmt)
 
 @app.route("/success")
 def success():
