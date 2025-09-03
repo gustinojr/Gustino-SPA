@@ -1,22 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Enter Promo Code</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <meta charset="UTF-8">
+    <title>Gustino SPA - Enter Promo Code</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-  <h1>Welcome to Gustino Spa</h1>
-  <p>Please enter your promo code below:</p>
-
-  <form method="POST">
-    <label for="code">Promo Code:</label><br>
-    <input type="text" name="code" id="code" required><br><br>
-    <button type="submit">Continue</button>
-  </form>
-
-  {% if error %}
-    <p style="color:red;">{{ error }}</p>
-  {% endif %}
+    <h1>Welcome to Gustino SPA</h1>
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul class="flash">
+          {% for msg in messages %}
+            <li>{{ msg }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+    <form method="POST">
+        <label for="code">Enter Promo Code:</label>
+        <input type="text" name="code" id="code" required>
+        <button type="submit">Invia!</button>
+    </form>
 </body>
 </html>
