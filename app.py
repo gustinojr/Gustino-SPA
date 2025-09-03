@@ -101,9 +101,9 @@ def prize(promo_id):
         # Special prize email
         if promo.code == "20121997":
             msg = Message(
-                subject="Congratulations! You won a special prize!",
+                subject="Congratulazioni! Hai vinto un premio Speciale!",
                 recipients=[email],
-                body=f"Hello {name},\n\nYou have claimed the special prize: Dinner for 2!"
+                body=f"Ciao {name},\n\nHai ricevuto il tuo premio speciale: Una cena cucinata da Gustino in persona presso la Gustino's SPA!\n\nPotrai usufruire di questo premio dal 20/12/2025 fino al 06/01/2026"
             )
             mail.send(msg)
 
@@ -151,9 +151,9 @@ def booking(user_id):
 
         # Send email to client
         client_msg = Message(
-            subject="Reservation Confirmed",
+            subject="Prenotazione Confermata",
             recipients=[user.email],
-            body=f"Hello {user.name},\n\nYour reservation is confirmed for {date} from {start_time} to {end_time}."
+            body=f"Ciao {user.name},\n\nla tua prenotazione è confermata per il {date} dalle {start_time} alle {end_time}."
         )
         mail.send(client_msg)
 
