@@ -1,20 +1,19 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>Prize - Gustino's SPA</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ cache_slug }}">
+  <meta charset="UTF-8">
+  <title>Special Prize</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-  <main class="card">
-    <h1>🎉 Congratulations!</h1>
-    <p>You are eligible for the special prize: <strong>Dinner for 2</strong> (valid {{ promo_start.strftime('%b %d, %Y') }} → {{ promo_end.strftime('%b %d, %Y') }}).</p>
+  <h1>🎉 Congratulations {{ user.name }}!</h1>
+  <p>You are eligible for the special prize: 
+     <strong>Dinner for 2</strong> 
+     (valid {{ promo_start.strftime('%b %d, %Y') }} → {{ promo_end.strftime('%b %d, %Y') }}).
+  </p>
 
-    <p>Click below to claim the prize and receive details by email, then continue to booking.</p>
-
-    <form method="POST">
-      <button type="submit">Claim Prize & Continue</button>
-    </form>
-  </main>
+  <form action="{{ url_for('booking', user_id=user.id) }}">
+    <button type="submit">Continue to Booking</button>
+  </form>
 </body>
 </html>
