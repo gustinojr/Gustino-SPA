@@ -53,7 +53,7 @@ class Reservation(db.Model):
 with app.app_context():
     db.create_all()
     # Auto-insert promo codes if not exist
-    codes = ["GUSTINO2025", "SPECIAL2025", "VIP2025"]
+    codes = ["GUSTINO2025", "20121997", "VIP2025"]
     for c in codes:
         if not PromoCode.query.filter_by(code=c).first():
             db.session.add(PromoCode(code=c))
@@ -99,7 +99,7 @@ def prize(promo_id):
         db.session.commit()
 
         # Special prize email
-        if promo.code == "SPECIAL2025":
+        if promo.code == "20121997":
             msg = Message(
                 subject="Congratulations! You won a special prize!",
                 recipients=[email],
