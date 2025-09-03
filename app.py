@@ -63,13 +63,22 @@ with app.app_context():
 # ------------------------
 # Routes
 # ------------------------
-@app.route("/drop-tables")
-def drop_tables():
+@app.route('/reset-db')
+def reset_db():
+    # WARNING: this will drop all data
+    db.drop_all()
+    db.create_all()
+
+    # Insert default promo codes
+    for code in DEFAULT_PROMO_CODES:
+        promo = PromoCode(code=code, redeemed=False)
+        db.session.add(promo)
     try:
-        db.drop_all()
-        return "All tables dropped successfully!"
-    except Exception as e:
-        return f"Error dropping tables: {e}"
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+
+    return "Database reset and promo codes inserted!"
 
 @app.route("/", methods=["GET", "POST"])
 def index():
