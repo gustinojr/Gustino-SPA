@@ -16,15 +16,27 @@ DB_HOST = os.environ.get("DATABASE_URL")
 app.config['SQLALCHEMY_DATABASE_URI'] = f"{DB_HOST}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-db = SQLAlchemy(app)
+db = SQLAlchemy()
 
-# Example model
 class User(db.Model):
+    __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True)
-    serial_code = db.Column(db.String(50), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    redeemed = db.Column(db.Boolean, default=False)
+    name = db.Column(db.String(120), nullable=True)
+    email = db.Column(db.String(120), unique=True, nullable=True)
 
+    # relationship with promo codes
+    promo_codes = db.relationship("PromoCode", back_populates="user")
+
+class PromoCode(db.Model):
+    __tablename__ = "promo_codes"
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(50), unique=True, nullable=False)
+    redeemed = db.Column(db.Boolean, default=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+
+    # link back to user
+    user = db.relationship("User", back_populates="promo_codes")
+    
 # Auto-create tables if they don't exist
 with app.app_context():
     db.create_all()
@@ -44,6 +56,13 @@ class Booking(db.Model):
     start_time = db.Column(db.Time, nullable=False)
     end_time = db.Column(db.Time, nullable=False)
 
+from app import db, PromoCode
+
+codes = ["20121997", "GUSTINO2025B", "GUSTINO2025C"]
+
+for c in codes:
+    db.session.add(PromoCode(code=c))
+db.session.commit()
 # Routes
 @app.route("/", methods=["GET", "POST"])
 def index():
