@@ -1,29 +1,22 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>Gustino's SPA - Redeem</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ cache_slug }}">
+  <meta charset="UTF-8">
+  <title>Enter Promo Code</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-  <main class="card">
-    <h1>Welcome to Gustino's SPA</h1>
+  <h1>Welcome to Gustino Spa</h1>
+  <p>Please enter your promo code below:</p>
 
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        <div class="flash">{{ messages[0] }}</div>
-      {% endif %}
-    {% endwith %}
+  <form method="POST">
+    <label for="code">Promo Code:</label><br>
+    <input type="text" name="code" id="code" required><br><br>
+    <button type="submit">Continue</button>
+  </form>
 
-    <form method="POST" class="stack">
-      <label>Redeem Code</label>
-      <input type="text" name="redeem_code" placeholder="Enter code" required>
-
-      <label>Your Email</label>
-      <input type="email" name="email" placeholder="you@email.com" required>
-
-      <button type="submit">Redeem</button>
-    </form>
-  </main>
+  {% if error %}
+    <p style="color:red;">{{ error }}</p>
+  {% endif %}
 </body>
 </html>
