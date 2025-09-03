@@ -18,6 +18,18 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
+# Example model
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    serial_code = db.Column(db.String(50), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    redeemed = db.Column(db.Boolean, default=False)
+
+# Auto-create tables if they don't exist
+@app.before_first_request
+def create_tables():
+    db.create_all()
+
 # Constants for promo
 PROMO_START = datetime(2025, 12, 20)
 PROMO_END = datetime(2026, 1, 6)
@@ -25,13 +37,6 @@ BOOKING_START = time(11, 0)  # 11:00 am
 BOOKING_END = time(23, 0)    # late night
 BLOCK_HOURS = 2
 
-# Models
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(120), unique=True)
-    serial_code = db.Column(db.String(50), unique=True)
-    redeemed = db.Column(db.Boolean, default=False)
-    booked = db.relationship('Booking', backref='user', lazy=True)
 
 class Booking(db.Model):
     id = db.Column(db.Integer, primary_key=True)
