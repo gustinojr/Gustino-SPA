@@ -28,26 +28,29 @@ mail = Mail(app)
 # Models
 # ------------------------
 class User(db.Model):
-    __tablename__ = 'users'  # safer than "user"
+    __tablename__ = "users"  # make sure this matches your DB
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(150))
-    email = db.Column(db.String(150), unique=True)
-    reservations = db.relationship('Reservation', backref='user', lazy=True)
-    promos = db.relationship('PromoCode', backref='user', lazy=True)
-
-class PromoCode(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    code = db.Column(db.String(50), unique=True, nullable=False)
-    redeemed = db.Column(db.Boolean, default=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    name = db.Column(db.String(100))
+    email = db.Column(db.String(100), unique=True)
+    
+    reservations = db.relationship("Reservation", back_populates="user")
 
 class Reservation(db.Model):
+    __tablename__ = "reservations"
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    date = db.Column(db.Date, nullable=False)
-    start_time = db.Column(db.Time, nullable=False)
-    end_time = db.Column(db.Time, nullable=False)
+    date = db.Column(db.DateTime)
+    details = db.Column(db.String(255))
 
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    user = db.relationship("User", back_populates="reservations")
+
+class PromoCode(db.Model):
+    __tablename__ = "promo_codes"
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(50), unique=True)
+    redeemed = db.Column(db.Boolean, default=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    user = db.relationship("User")
 # ------------------------
 # Initialize DB & Promo Codes
 # ------------------------
