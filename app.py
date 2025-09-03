@@ -28,9 +28,10 @@ mail = Mail(app)
 # Models
 # ------------------------
 class User(db.Model):
+    __tablename__ = 'users'  # safer than "user"
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(120))
-    email = db.Column(db.String(120), unique=True)
+    name = db.Column(db.String(150))
+    email = db.Column(db.String(150), unique=True)
     reservations = db.relationship('Reservation', backref='user', lazy=True)
     promos = db.relationship('PromoCode', backref='user', lazy=True)
 
@@ -62,6 +63,14 @@ with app.app_context():
 # ------------------------
 # Routes
 # ------------------------
+@app.route("/drop-tables")
+def drop_tables():
+    try:
+        db.drop_all()
+        return "All tables dropped successfully!"
+    except Exception as e:
+        return f"Error dropping tables: {e}"
+
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
