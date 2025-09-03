@@ -26,8 +26,7 @@ class User(db.Model):
     redeemed = db.Column(db.Boolean, default=False)
 
 # Auto-create tables if they don't exist
-@app.before_first_request
-def create_tables():
+with app.app_context():
     db.create_all()
 
 # Constants for promo
