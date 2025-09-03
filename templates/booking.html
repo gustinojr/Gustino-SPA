@@ -1,85 +1,44 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>Booking - Gustino's SPA</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ cache_slug }}">
+    <meta charset="UTF-8">
+    <title>Gustino SPA - Prenotazioni</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-  <main class="card">
-    <h1>📅 Book Your Massage</h1>
-    <p>Welcome, <strong>{{ user.email }}</strong></p>
-
+    <h1>Inserisci la tua prenotazione!</h1>
+    <p>Ciao {{ user.name }} ({{ user.email }})</p>
     {% with messages = get_flashed_messages() %}
       {% if messages %}
-        <div class="flash">{{ messages[0] }}</div>
+        <ul class="flash">
+          {% for msg in messages %}
+            <li>{{ msg }}</li>
+          {% endfor %}
+        </ul>
       {% endif %}
     {% endwith %}
+    <form method="POST">
+        <label for="date">Data:</label>
+        <input type="date" name="date" id="date" value="{{ first_available }}" min="{{ first_available }}" required>
 
-    <form method="POST" id="booking-form">
-      <label for="date">Select Date</label>
-      <select id="date" name="date" onchange="renderTimes()">
-        {% for d, slots in slots_by_date.items() %}
-          <option value="{{ d }}" {% if d == default_date %}selected{% endif %}>{{ d }}</option>
-        {% endfor %}
-      </select>
+        <label for="start_time">Inizio:</label>
+        <input type="time" name="start_time" id="start_time" value="{{ slot_start }}" min="{{ slot_start }}" max="{{ slot_end }}" required>
 
-      <label for="time">Select 2-hour slot</label>
-      <select id="time" name="start"></select>
-      <input type="hidden" name="end" id="end">
+        <label for="end_time">Fine:</label>
+        <input type="time" name="end_time" id="end_time" value="{{ (slot_start | datetimeformat('%H:%M')) }}" min="{{ slot_start }}" max="{{ slot_end }}" required>
 
-      <div style="margin-top: 12px;">
-        <button type="submit">Reserve Selected Slot</button>
-      </div>
+        <button type="submit">Prenota ora!</button>
     </form>
 
-    <h2>Your Reservations</h2>
-    {% if user_bookings %}
-      <table>
-        <thead><tr><th>Date</th><th>Start</th><th>End</th></tr></thead>
-        <tbody>
-          {% for b in user_bookings %}
-            <tr><td>{{ b.date }}</td><td>{{ b.start }}</td><td>{{ b.end }}</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <h2>Prenotazioni effettuate</h2>
+    {% if reservations %}
+        <ul>
+        {% for r in reservations %}
+            <li>{{ r.date }}: {{ r.start_time.strftime('%H:%M') }} - {{ r.end_time.strftime('%H:%M') }} by {{ r.user.name }}</li>
+        {% endfor %}
+        </ul>
     {% else %}
-      <p><em>No reservations yet.</em></p>
+        <p>No reservations yet.</p>
     {% endif %}
-  </main>
-
-<script>
-  const slots = {{ slots_by_date|tojson }};
-  const dateSelect = document.getElementById('date');
-  const timeSelect = document.getElementById('time');
-  const endInput = document.getElementById('end');
-
-  function renderTimes() {
-    const d = dateSelect.value;
-    const daySlots = slots[d] || [];
-    timeSelect.innerHTML = '';
-    endInput.value = '';
-
-    daySlots.forEach(([start, end]) => {
-      const opt = document.createElement('option');
-      opt.value = start;
-      opt.textContent = `${start} — ${end}`;
-      opt.dataset.end = end;
-      timeSelect.appendChild(opt);
-    });
-
-    if (timeSelect.options.length > 0) {
-      endInput.value = timeSelect.options[0].dataset.end;
-    }
-  }
-
-  timeSelect?.addEventListener('change', (e) => {
-    const selected = e.target.selectedOptions[0];
-    if (selected) endInput.value = selected.dataset.end;
-  });
-
-  // initial render
-  renderTimes();
-</script>
 </body>
 </html>
