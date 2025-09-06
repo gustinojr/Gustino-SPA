@@ -20,7 +20,7 @@ app.config.update(
     MAIL_USE_TLS=True,
     MAIL_USERNAME=os.environ.get("MAIL_USERNAME"),
     MAIL_PASSWORD=os.environ.get("MAIL_PASSWORD"),
-    MAIL_DEFAULT_SENDER=os.environ.get("gustinosspa@gmail.com"),
+    MAIL_DEFAULT_SENDER="gustinosspa@gmail.com",
 )
 mail = Mail(app)
 
@@ -123,7 +123,6 @@ def prize(promo_id):
         if promo.code == "20121997":
             msg = Message(
                 subject="Congratulazioni! Hai vinto un premio Speciale!",
-                sender=app.config['MAIL_DEFAULT_SENDER'], 
                 recipients=[email],
                 body=f"Ciao {name},\n\nHai ricevuto il tuo premio speciale: Una cena cucinata da Gustino in persona presso la Gustino's SPA!\n\nPotrai usufruire di questo premio dal 20/12/2025 fino al 06/01/2026"
             )
@@ -174,7 +173,6 @@ def booking(user_id):
         # Send email to client
         client_msg = Message(
             subject="Prenotazione Confermata",
-            sender=app.config['MAIL_DEFAULT_SENDER'], 
             recipients=[user.email],
             body=f"Ciao {user.name},\n\nla tua prenotazione è confermata per il {date} dalle {start_time} alle {end_time}."
         )
@@ -183,7 +181,6 @@ def booking(user_id):
         # Send email to owner
         owner_msg = Message(
             subject="New Reservation",
-            sender=app.config['MAIL_DEFAULT_SENDER'], 
             recipients=[os.environ.get("ADMIN_EMAIL", "owner@example.com")],
             body=f"Reservation by {user.name} ({user.email}) for {date} from {start_time} to {end_time}."
         )
