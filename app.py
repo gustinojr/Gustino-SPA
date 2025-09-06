@@ -137,18 +137,24 @@ def prize(promo_id):
 def booking(user_id):
     user = User.query.get_or_404(user_id)
 
-    slot_start = datetime.strptime("11:00", "%H:%M")
-    slot_end = datetime.strptime("19:00", "%H:%M")
-    slot_length = timedelta(hours=2)
+    # Time slot limits
+    slot_start_str = "11:00"
+    slot_end_str = "23:59"
 
     if request.method == "POST":
         date_str = request.form.get("date")
         start_str = request.form.get("start_time")
         end_str = request.form.get("end_time")
 
+        # Convert strings to datetime objects
         date = datetime.strptime(date_str, "%Y-%m-%d").date()
         start_time = datetime.strptime(start_str, "%H:%M").time()
         end_time = datetime.strptime(end_str, "%H:%M").time()
+
+        # Check valid time range
+        if start_time < datetime.strptime(slot_start_str, "%H:%M").time() or end_time > datetime.strptime(slot_end_str, "%H:%M").time():
+            flash("Time must be between 11:00 and 23:59")
+            return redirect(url_for("booking", user_id=user.id))
 
         # Check for overlapping reservations
         existing = Reservation.query.filter(
@@ -160,6 +166,7 @@ def booking(user_id):
             flash("Selected slot is not available")
             return redirect(url_for("booking", user_id=user.id))
 
+        # Save reservation
         reservation = Reservation(
             user_id=user.id,
             date=date,
@@ -180,19 +187,11 @@ def booking(user_id):
     while first_available in booked_dates:
         first_available += timedelta(days=1)
 
-    # Convert slots to string for template
-    slot_start_str = slot_start.strftime("%H:%M")
-    slot_end_str = slot_end.strftime("%H:%M")
-    slot_max_start = (slot_end - slot_length).strftime("%H:%M")
-    slot_min_end = (slot_start + slot_length).strftime("%H:%M")
-
     return render_template(
         "booking.html",
         user=user,
         slot_start=slot_start_str,
         slot_end=slot_end_str,
-        slot_max_start=slot_max_start,
-        slot_min_end=slot_min_end,
         first_available=first_available,
         reservations=reservations
     )
