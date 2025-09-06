@@ -2,43 +2,70 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Gustino SPA - Prenotazioni</title>
+    <title>Prenotazioni</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h1>Inserisci la tua prenotazione!</h1>
-    <p>Ciao {{ user.name }} ({{ user.email }})</p>
+    <h1>Prenotazioni per {{ user.name }}</h1>
+
     {% with messages = get_flashed_messages() %}
       {% if messages %}
-        <ul class="flash">
-          {% for msg in messages %}
-            <li>{{ msg }}</li>
-          {% endfor %}
+        <ul class="flashes">
+        {% for msg in messages %}
+          <li>{{ msg }}</li>
+        {% endfor %}
         </ul>
       {% endif %}
     {% endwith %}
+
     <form method="POST">
-        <label for="date">Data:</label>
-        <input type="date" name="date" id="date" value="{{ first_available }}" min="{{ first_available }}" required>
+        <label for="date">Seleziona una data:</label>
+        <input 
+            type="date" 
+            id="date" 
+            name="date" 
+            min="{{ first_available }}" 
+            required
+        ><br><br>
 
-        <label for="start_time">Inizio:</label>
-        <input type="time" name="start_time" id="start_time" value="{{ slot_start }}" min="{{ slot_start }}" max="{{ slot_end }}" required>
+        <label for="start_time">Inizio appuntamento:</label>
+        <input 
+            type="time" 
+            id="start_time" 
+            name="start_time" 
+            min="{{ slot_start.strftime('%H:%M') }}" 
+            max="{{ (slot_end - slot_length).strftime('%H:%M') }}" 
+            required
+        ><br><br>
 
-        <label for="end_time">Fine:</label>
-        <input type="time" name="end_time" id="end_time" value="{{ (slot_start | datetimeformat('%H:%M')) }}" min="{{ slot_start }}" max="{{ slot_end }}" required>
+        <label for="end_time">Fine appuntamento:</label>
+        <input 
+            type="time" 
+            id="end_time" 
+            name="end_time" 
+            min="{{ (slot_start + slot_length).strftime('%H:%M') }}" 
+            max="{{ slot_end.strftime('%H:%M') }}" 
+            required
+        ><br><br>
 
-        <button type="submit">Prenota ora!</button>
+        <button type="submit">Conferma la Prenotazione!</button>
     </form>
 
-    <h2>Prenotazioni effettuate</h2>
+    <h2>Prenotazioni esistenti</h2>
     {% if reservations %}
         <ul>
         {% for r in reservations %}
-            <li>{{ r.date }}: {{ r.start_time.strftime('%H:%M') }} - {{ r.end_time.strftime('%H:%M') }} by {{ r.user.name }}</li>
+            <li>{{ r.date }}: {{ r.start_time|datetimeformat }} - {{ r.end_time|datetimeformat }} ({{ r.user.name }})</li>
         {% endfor %}
         </ul>
     {% else %}
         <p>No reservations yet.</p>
     {% endif %}
+
+    <script>
+        // Automatically set date input to first available
+        const dateInput = document.getElementById('date');
+        dateInput.value = "{{ first_available }}";
+    </script>
 </body>
 </html>
