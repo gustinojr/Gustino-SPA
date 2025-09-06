@@ -7,20 +7,24 @@ import os
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "supersecret")
 
+# ------------------------
 # Database
+# ------------------------
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
     "DATABASE_URL", "postgresql://postgres:password@localhost:5432/gustino")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
+# ------------------------
 # Mail
+# ------------------------
 app.config.update(
     MAIL_SERVER=os.environ.get("MAIL_SERVER", "smtp.gmail.com"),
     MAIL_PORT=int(os.environ.get("MAIL_PORT", 587)),
     MAIL_USE_TLS=True,
     MAIL_USERNAME=os.environ.get("MAIL_USERNAME"),
     MAIL_PASSWORD=os.environ.get("MAIL_PASSWORD"),
-    MAIL_DEFAULT_SENDER="gustinosspa@gmail.com",
+    MAIL_DEFAULT_SENDER=os.environ.get("MAIL_DEFAULT_SENDER", "gustinosspa@gmail.com"),
 )
 mail = Mail(app)
 
@@ -28,17 +32,20 @@ mail = Mail(app)
 # Models
 # ------------------------
 class User(db.Model):
-    __tablename__ = "users"  # make sure this matches your DB
+    __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100))
     email = db.Column(db.String(100), unique=True)
     
     reservations = db.relationship("Reservation", back_populates="user")
+    promo_codes = db.relationship("PromoCode", back_populates="user")
 
 class Reservation(db.Model):
     __tablename__ = "reservations"
     id = db.Column(db.Integer, primary_key=True)
-    date = db.Column(db.DateTime)
+    date = db.Column(db.Date)
+    start_time = db.Column(db.Time)
+    end_time = db.Column(db.Time)
     details = db.Column(db.String(255))
 
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
@@ -50,17 +57,18 @@ class PromoCode(db.Model):
     code = db.Column(db.String(50), unique=True)
     redeemed = db.Column(db.Boolean, default=False)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
-    user = db.relationship("User")
+    user = db.relationship("User", back_populates="promo_codes")
+
 # ------------------------
 # Initialize DB & Promo Codes
 # ------------------------
+DEFAULT_PROMO_CODES = ["GUSTINO2025", "20121997", "VIP2025"]
+
 with app.app_context():
     db.create_all()
-    # Auto-insert promo codes if not exist
-    codes = ["GUSTINO2025", "20121997", "VIP2025"]
-    for c in codes:
-        if not PromoCode.query.filter_by(code=c).first():
-            db.session.add(PromoCode(code=c))
+    for code in DEFAULT_PROMO_CODES:
+        if not PromoCode.query.filter_by(code=code).first():
+            db.session.add(PromoCode(code=code))
     db.session.commit()
 
 # ------------------------
@@ -68,20 +76,12 @@ with app.app_context():
 # ------------------------
 @app.route('/reset-db')
 def reset_db():
-    # WARNING: this will drop all data
     db.drop_all()
     db.create_all()
-
-    # Insert default promo codes
     for code in DEFAULT_PROMO_CODES:
-        promo = PromoCode(code=code, redeemed=False)
-        db.session.add(promo)
-    try:
-        db.session.commit()
-    except IntegrityError:
-        db.session.rollback()
-
-    return "Database reset and promo codes inserted!"
+        db.session.add(PromoCode(code=code))
+    db.session.commit()
+    return "Database reset!"
 
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -119,7 +119,7 @@ def prize(promo_id):
         promo.redeemed = True
         db.session.commit()
 
-        # Special prize email
+        # Send special prize email
         if promo.code == "20121997":
             msg = Message(
                 subject="Congratulazioni! Hai vinto un premio Speciale!",
@@ -137,27 +137,39 @@ def prize(promo_id):
 def booking(user_id):
     user = User.query.get_or_404(user_id)
 
-    # Define available time slots (example: 11:00-19:00)
+    # Define available time slots
     slot_start = datetime.strptime("11:00", "%H:%M").time()
     slot_end = datetime.strptime("19:00", "%H:%M").time()
     slot_length = timedelta(hours=2)
+
+    today = datetime.today().date()
+    reservations = Reservation.query.filter(Reservation.date >= today).all()
+    booked_dates = {r.date for r in reservations}
+
+    # First available date logic
+    first_available = today
+    while first_available in booked_dates:
+        first_available += timedelta(days=1)
 
     if request.method == "POST":
         date_str = request.form.get("date")
         start_str = request.form.get("start_time")
         end_str = request.form.get("end_time")
 
+        # Parse date
         date = datetime.strptime(date_str, "%Y-%m-%d").date()
-        start_time = datetime.strptime(start_str, "%H:%M").time()
-        end_time = datetime.strptime(end_str, "%H:%M").time()
+
+        # Parse time (handle potential seconds)
+        start_time = datetime.strptime(start_str[:5], "%H:%M").time()
+        end_time = datetime.strptime(end_str[:5], "%H:%M").time()
 
         # Check for overlapping reservations
-        existing = Reservation.query.filter(
+        overlapping = Reservation.query.filter(
             Reservation.date == date,
-            Reservation.end_time > start_time,
-            Reservation.start_time < end_time
+            Reservation.start_time < end_time,
+            Reservation.end_time > start_time
         ).first()
-        if existing:
+        if overlapping:
             flash("Selected slot is not available")
             return redirect(url_for("booking", user_id=user.id))
 
@@ -170,7 +182,7 @@ def booking(user_id):
         db.session.add(reservation)
         db.session.commit()
 
-        # Send email to client
+        # Email to client
         client_msg = Message(
             subject="Prenotazione Confermata",
             recipients=[user.email],
@@ -178,24 +190,16 @@ def booking(user_id):
         )
         mail.send(client_msg)
 
-        # Send email to owner
+        # Email to owner
         owner_msg = Message(
             subject="New Reservation",
-            recipients=[os.environ.get("ADMIN_EMAIL", "owner@example.com")],
+            recipients=[os.environ.get("OWNER_EMAIL", "owner@example.com")],
             body=f"Reservation by {user.name} ({user.email}) for {date} from {start_time} to {end_time}."
         )
         mail.send(owner_msg)
 
         flash("Reservation successful")
         return redirect(url_for("booking", user_id=user.id))
-
-    # Determine first available date
-    today = datetime.today().date()
-    reservations = Reservation.query.filter(Reservation.date >= today).all()
-    booked_dates = {r.date for r in reservations}
-    first_available = today
-    while first_available in booked_dates:
-        first_available += timedelta(days=1)
 
     return render_template(
         "booking.html",
