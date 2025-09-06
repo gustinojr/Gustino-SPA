@@ -33,8 +33,8 @@
             type="time" 
             id="start_time" 
             name="start_time" 
-            min="{{ slot_start.strftime('%H:%M') }}" 
-            max="{{ (slot_end - slot_length).strftime('%H:%M') }}" 
+            min="{{ slot_start }}" 
+            max="{{ slot_max_start }}" 
             required
         ><br><br>
 
@@ -43,8 +43,8 @@
             type="time" 
             id="end_time" 
             name="end_time" 
-            min="{{ (slot_start + slot_length).strftime('%H:%M') }}" 
-            max="{{ slot_end.strftime('%H:%M') }}" 
+            min="{{ slot_min_end }}" 
+            max="{{ slot_end }}" 
             required
         ><br><br>
 
