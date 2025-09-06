@@ -141,22 +141,31 @@ def booking(user_id):
     slot_start_str = "11:00"
     slot_end_str = "23:59"
 
+    # Booking date range
+    start_date = datetime.strptime("2025-12-20", "%Y-%m-%d").date()
+    end_date = datetime.strptime("2026-01-06", "%Y-%m-%d").date()
+
     if request.method == "POST":
         date_str = request.form.get("date")
         start_str = request.form.get("start_time")
         end_str = request.form.get("end_time")
 
-        # Convert strings to datetime objects
+        # Convert to proper datetime objects
         date = datetime.strptime(date_str, "%Y-%m-%d").date()
         start_time = datetime.strptime(start_str, "%H:%M").time()
         end_time = datetime.strptime(end_str, "%H:%M").time()
 
-        # Check valid time range
+        # Validate date
+        if date < start_date or date > end_date:
+            flash(f"Date must be between {start_date} and {end_date}")
+            return redirect(url_for("booking", user_id=user.id))
+
+        # Validate time
         if start_time < datetime.strptime(slot_start_str, "%H:%M").time() or end_time > datetime.strptime(slot_end_str, "%H:%M").time():
             flash("Time must be between 11:00 and 23:59")
             return redirect(url_for("booking", user_id=user.id))
 
-        # Check for overlapping reservations
+        # Check overlapping reservations
         existing = Reservation.query.filter(
             Reservation.date == date,
             Reservation.start_time < end_time,
@@ -179,13 +188,20 @@ def booking(user_id):
         flash("Reservation successful")
         return redirect(url_for("booking", user_id=user.id))
 
-    # Determine first available date
-    today = datetime.today().date()
-    reservations = Reservation.query.filter(Reservation.date >= today).all()
+    # Determine first available date in the range
+    reservations = Reservation.query.filter(
+        Reservation.date >= start_date,
+        Reservation.date <= end_date
+    ).all()
     booked_dates = {r.date for r in reservations}
-    first_available = today
-    while first_available in booked_dates:
+
+    first_available = start_date
+    while first_available in booked_dates and first_available <= end_date:
         first_available += timedelta(days=1)
+    
+    # If all dates are booked
+    if first_available > end_date:
+        first_available = None
 
     return render_template(
         "booking.html",
@@ -193,6 +209,8 @@ def booking(user_id):
         slot_start=slot_start_str,
         slot_end=slot_end_str,
         first_available=first_available,
+        start_date=start_date,
+        end_date=end_date,
         reservations=reservations
     )
 
