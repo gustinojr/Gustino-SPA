@@ -137,39 +137,26 @@ def prize(promo_id):
 def booking(user_id):
     user = User.query.get_or_404(user_id)
 
-    # Define available time slots
-    slot_start = datetime.strptime("11:00", "%H:%M").time()
-    slot_end = datetime.strptime("19:00", "%H:%M").time()
+    slot_start = datetime.strptime("11:00", "%H:%M")
+    slot_end = datetime.strptime("19:00", "%H:%M")
     slot_length = timedelta(hours=2)
-
-    today = datetime.today().date()
-    reservations = Reservation.query.filter(Reservation.date >= today).all()
-    booked_dates = {r.date for r in reservations}
-
-    # First available date logic
-    first_available = today
-    while first_available in booked_dates:
-        first_available += timedelta(days=1)
 
     if request.method == "POST":
         date_str = request.form.get("date")
         start_str = request.form.get("start_time")
         end_str = request.form.get("end_time")
 
-        # Parse date
         date = datetime.strptime(date_str, "%Y-%m-%d").date()
-
-        # Parse time (handle potential seconds)
-        start_time = datetime.strptime(start_str[:5], "%H:%M").time()
-        end_time = datetime.strptime(end_str[:5], "%H:%M").time()
+        start_time = datetime.strptime(start_str, "%H:%M").time()
+        end_time = datetime.strptime(end_str, "%H:%M").time()
 
         # Check for overlapping reservations
-        overlapping = Reservation.query.filter(
+        existing = Reservation.query.filter(
             Reservation.date == date,
             Reservation.start_time < end_time,
             Reservation.end_time > start_time
         ).first()
-        if overlapping:
+        if existing:
             flash("Selected slot is not available")
             return redirect(url_for("booking", user_id=user.id))
 
@@ -182,34 +169,34 @@ def booking(user_id):
         db.session.add(reservation)
         db.session.commit()
 
-        # Email to client
-        client_msg = Message(
-            subject="Prenotazione Confermata",
-            recipients=[user.email],
-            body=f"Ciao {user.name},\n\nla tua prenotazione è confermata per il {date} dalle {start_time} alle {end_time}."
-        )
-        mail.send(client_msg)
-
-        # Email to owner
-        owner_msg = Message(
-            subject="New Reservation",
-            recipients=[os.environ.get("OWNER_EMAIL", "owner@example.com")],
-            body=f"Reservation by {user.name} ({user.email}) for {date} from {start_time} to {end_time}."
-        )
-        mail.send(owner_msg)
-
         flash("Reservation successful")
         return redirect(url_for("booking", user_id=user.id))
+
+    # Determine first available date
+    today = datetime.today().date()
+    reservations = Reservation.query.filter(Reservation.date >= today).all()
+    booked_dates = {r.date for r in reservations}
+    first_available = today
+    while first_available in booked_dates:
+        first_available += timedelta(days=1)
+
+    # Convert slots to string for template
+    slot_start_str = slot_start.strftime("%H:%M")
+    slot_end_str = slot_end.strftime("%H:%M")
+    slot_max_start = (slot_end - slot_length).strftime("%H:%M")
+    slot_min_end = (slot_start + slot_length).strftime("%H:%M")
 
     return render_template(
         "booking.html",
         user=user,
-        slot_start=slot_start,
-        slot_end=slot_end,
-        slot_length=slot_length,
+        slot_start=slot_start_str,
+        slot_end=slot_end_str,
+        slot_max_start=slot_max_start,
+        slot_min_end=slot_min_end,
         first_available=first_available,
         reservations=reservations
     )
+
 
 @app.template_filter('datetimeformat')
 def datetimeformat(value, fmt='%H:%M'):
