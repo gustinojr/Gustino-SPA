@@ -86,31 +86,62 @@ def reset_db():
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
-        entered_code = request.form.get("code").strip()
+        entered_code = request.form.get("code", "").strip()
         promo = PromoCode.query.filter_by(code=entered_code).first()
+
         if not promo:
-            flash("Invalid promo code")
+            flash("Codice non valido")
             return redirect(url_for("index"))
 
-        if not promo.redeemed:
-            return redirect(url_for("prize", promo_id=promo.id))
-        else:
+        if promo.redeemed:
             user = promo.user
             return redirect(url_for("booking", user_id=user.id))
+
+        # Split based on code
+        if promo.code == "20122025":
+            return redirect(url_for("special_prize", promo_id=promo.id))
+        else:
+            return redirect(url_for("prize", promo_id=promo.id))
+
     return render_template("index.html")
 
 
 @app.route("/prize/<int:promo_id>", methods=["GET", "POST"])
 def prize(promo_id):
     promo = PromoCode.query.get_or_404(promo_id)
+
     if request.method == "POST":
         name = request.form.get("name")
         email = request.form.get("email")
+
         if not name or not email:
             flash("Name and email required")
             return redirect(url_for("prize", promo_id=promo.id))
 
-        # Create user and bind promo
+        user = User(name=name, email=email)
+        db.session.add(user)
+        db.session.commit()
+
+        promo.user_id = user.id
+        promo.redeemed = True
+        db.session.commit()
+
+        flash("Registrazione completata! Procedi con la prenotazione.")
+        return redirect(url_for("booking", user_id=user.id))
+
+    return render_template("prize.html", promo=promo)
+@app.route("/special/<int:promo_id>", methods=["GET", "POST"])
+def special_prize(promo_id):
+    promo = PromoCode.query.get_or_404(promo_id)
+
+    if request.method == "POST":
+        name = request.form.get("name")
+        email = request.form.get("email")
+
+        if not name or not email:
+            flash("Name and email required")
+            return redirect(url_for("special_prize", promo_id=promo.id))
+
         user = User(name=name, email=email)
         db.session.add(user)
         db.session.commit()
@@ -120,17 +151,22 @@ def prize(promo_id):
         db.session.commit()
 
         # Send special prize email
-        if promo.code == "20121997":
-            msg = Message(
-                subject="Congratulazioni! Hai vinto un premio Speciale!",
-                recipients=[email],
-                body=f"Ciao {name},\n\nHai ricevuto il tuo premio speciale: Una cena cucinata da Gustino in persona presso la Gustino's SPA!\n\nPotrai usufruire di questo premio dal 20/12/2025 fino al 06/01/2026"
+        msg = Message(
+            subject="🎁 Congratulazioni! Premio Speciale!",
+            recipients=[email],
+            body=(
+                f"Ciao {name},\n\n"
+                "Hai ricevuto il tuo premio speciale: "
+                "Una cena cucinata da Gustino in persona presso la Gustino's SPA!\n\n"
+                "Potrai usufruire di questo premio dal 20/12/2025 fino al 06/01/2026."
             )
-            mail.send(msg)
+        )
+        mail.send(msg)
 
-        return redirect(url_for("booking", user_id=user.id))
+        flash("Premio speciale registrato! Controlla la tua email 📩")
+        return redirect(url_for("success"))
 
-    return render_template("prize.html", promo=promo)
+    return render_template("special.html", promo=promo)
 
 
 @app.route("/booking/<int:user_id>", methods=["GET", "POST"])
