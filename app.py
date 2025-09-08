@@ -98,15 +98,15 @@ def index():
             return redirect(url_for("booking", user_id=user.id))
 
         # Split based on code
-        if promo.code == "20122025":
+        if promo.code == "20121997":
             return redirect(url_for("special_prize", promo_id=promo.id))
         else:
-            return redirect(url_for("prize", promo_id=promo.id))
+            return redirect(url_for("register", promo_id=promo.id))
 
     return render_template("index.html")
 
 
-@app.route("/prize/<int:promo_id>", methods=["GET", "POST"])
+@app.route("/register/<int:promo_id>", methods=["GET", "POST"])
 def prize(promo_id):
     promo = PromoCode.query.get_or_404(promo_id)
 
@@ -129,7 +129,7 @@ def prize(promo_id):
         flash("Registrazione completata! Procedi con la prenotazione.")
         return redirect(url_for("booking", user_id=user.id))
 
-    return render_template("prize.html", promo=promo)
+    return render_template("register.html", promo=promo)
 @app.route("/special/<int:promo_id>", methods=["GET", "POST"])
 def special_prize(promo_id):
     promo = PromoCode.query.get_or_404(promo_id)
@@ -166,7 +166,7 @@ def special_prize(promo_id):
         flash("Premio speciale registrato! Controlla la tua email 📩")
         return redirect(url_for("success"))
 
-    return render_template("special.html", promo=promo)
+    return render_template("special_prize.html", promo=promo)
 
 
 @app.route("/booking/<int:user_id>", methods=["GET", "POST"])
