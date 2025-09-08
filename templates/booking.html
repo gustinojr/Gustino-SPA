@@ -33,12 +33,12 @@
       <button type="submit">Prenota</button>
     </form>
 
-    <h4>Giorni già prenotati:</h4>
-    <ul>
-      {% for r in reservations %}
-        <li>{{ r.date.strftime("%d/%m/%Y") }} dalle {{ r.start_time.strftime("%H:%M") }} alle {{ r.end_time.strftime("%H:%M") }}</li>
-      {% endfor %}
-    </ul>
+<h4>Le tue prenotazioni:</h4>
+<ul>
+  {% for r in user.reservations %}
+    <li>{{ r.date.strftime("%d/%m/%Y") }} dalle {{ r.start_time.strftime("%H:%M") }} alle {{ r.end_time.strftime("%H:%M") }}</li>
+  {% endfor %}
+</ul>
   </div>
 </body>
 </html>
