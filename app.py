@@ -11,7 +11,8 @@ app.secret_key = os.environ.get("SECRET_KEY", "supersecret")
 # Database
 # ------------------------
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
-    "DATABASE_URL", "postgresql://postgres:password@localhost:5432/gustino")
+    "DATABASE_URL", "postgresql://postgres:password@localhost:5432/gustino"
+)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
@@ -36,9 +37,10 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100))
     email = db.Column(db.String(100), unique=True)
-    
+
     reservations = db.relationship("Reservation", back_populates="user")
     promo_codes = db.relationship("PromoCode", back_populates="user")
+
 
 class Reservation(db.Model):
     __tablename__ = "reservations"
@@ -50,6 +52,7 @@ class Reservation(db.Model):
 
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
     user = db.relationship("User", back_populates="reservations")
+
 
 class PromoCode(db.Model):
     __tablename__ = "promo_codes"
@@ -74,7 +77,7 @@ with app.app_context():
 # ------------------------
 # Routes
 # ------------------------
-@app.route('/reset-db')
+@app.route("/reset-db")
 def reset_db():
     db.drop_all()
     db.create_all()
@@ -82,6 +85,7 @@ def reset_db():
         db.session.add(PromoCode(code=code))
     db.session.commit()
     return "Database reset!"
+
 
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -107,7 +111,7 @@ def index():
 
 
 @app.route("/register/<int:promo_id>", methods=["GET", "POST"])
-def prize(promo_id):
+def register(promo_id):
     promo = PromoCode.query.get_or_404(promo_id)
 
     if request.method == "POST":
@@ -115,8 +119,8 @@ def prize(promo_id):
         email = request.form.get("email")
 
         if not name or not email:
-            flash("Name and email required")
-            return redirect(url_for("prize", promo_id=promo.id))
+            flash("Nome ed email sono obbligatori")
+            return redirect(url_for("register", promo_id=promo.id))
 
         user = User(name=name, email=email)
         db.session.add(user)
@@ -130,6 +134,8 @@ def prize(promo_id):
         return redirect(url_for("booking", user_id=user.id))
 
     return render_template("register.html", promo=promo)
+
+
 @app.route("/special/<int:promo_id>", methods=["GET", "POST"])
 def special_prize(promo_id):
     promo = PromoCode.query.get_or_404(promo_id)
@@ -139,7 +145,7 @@ def special_prize(promo_id):
         email = request.form.get("email")
 
         if not name or not email:
-            flash("Name and email required")
+            flash("Nome ed email sono obbligatori")
             return redirect(url_for("special_prize", promo_id=promo.id))
 
         user = User(name=name, email=email)
@@ -173,9 +179,9 @@ def special_prize(promo_id):
 def booking(user_id):
     user = User.query.get_or_404(user_id)
 
-    # Time slot limits
-    slot_start_str = "11:00"
-    slot_end_str = "23:59"
+    # Booking time range
+    slot_start = datetime.strptime("11:00", "%H:%M").time()
+    slot_end = datetime.strptime("23:59", "%H:%M").time()
 
     # Booking date range
     start_date = datetime.strptime("2025-12-20", "%Y-%m-%d").date()
@@ -193,12 +199,12 @@ def booking(user_id):
 
         # Validate date
         if date < start_date or date > end_date:
-            flash(f"Date must be between {start_date} and {end_date}")
+            flash(f"La data deve essere tra {start_date} e {end_date}")
             return redirect(url_for("booking", user_id=user.id))
 
         # Validate time
-        if start_time < datetime.strptime(slot_start_str, "%H:%M").time() or end_time > datetime.strptime(slot_end_str, "%H:%M").time():
-            flash("Time must be between 11:00 and 23:59")
+        if start_time < slot_start or end_time > slot_end:
+            flash("L'orario deve essere tra 11:00 e 23:59")
             return redirect(url_for("booking", user_id=user.id))
 
         # Check overlapping reservations
@@ -208,7 +214,7 @@ def booking(user_id):
             Reservation.end_time > start_time
         ).first()
         if existing:
-            flash("Selected slot is not available")
+            flash("L'orario selezionato non è disponibile")
             return redirect(url_for("booking", user_id=user.id))
 
         # Save reservation
@@ -221,10 +227,25 @@ def booking(user_id):
         db.session.add(reservation)
         db.session.commit()
 
-        flash("Reservation successful")
+        # Send confirmation emails
+        client_msg = Message(
+            subject="Prenotazione Confermata",
+            recipients=[user.email],
+            body=f"Ciao {user.name},\n\nLa tua prenotazione è confermata per il {date} dalle {start_time} alle {end_time}."
+        )
+        mail.send(client_msg)
+
+        owner_msg = Message(
+            subject="Nuova Prenotazione",
+            recipients=[os.environ.get("OWNER_EMAIL", "owner@example.com")],
+            body=f"Prenotazione da {user.name} ({user.email}) per il {date} dalle {start_time} alle {end_time}."
+        )
+        mail.send(owner_msg)
+
+        flash("Prenotazione effettuata con successo")
         return redirect(url_for("booking", user_id=user.id))
 
-    # Determine first available date in the range
+    # Determine first available date
     reservations = Reservation.query.filter(
         Reservation.date >= start_date,
         Reservation.date <= end_date
@@ -234,16 +255,15 @@ def booking(user_id):
     first_available = start_date
     while first_available in booked_dates and first_available <= end_date:
         first_available += timedelta(days=1)
-    
-    # If all dates are booked
+
     if first_available > end_date:
         first_available = None
 
     return render_template(
         "booking.html",
         user=user,
-        slot_start=slot_start_str,
-        slot_end=slot_end_str,
+        slot_start=slot_start.strftime("%H:%M"),
+        slot_end=slot_end.strftime("%H:%M"),
         first_available=first_available,
         start_date=start_date,
         end_date=end_date,
@@ -254,6 +274,7 @@ def booking(user_id):
 @app.template_filter('datetimeformat')
 def datetimeformat(value, fmt='%H:%M'):
     return value.strftime(fmt)
+
 
 @app.route("/success")
 def success():
