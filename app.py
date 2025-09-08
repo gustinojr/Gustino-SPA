@@ -170,7 +170,7 @@ def special_prize(promo_id):
         mail.send(msg)
 
         flash("Premio speciale registrato! Controlla la tua email 📩")
-        return redirect(url_for("success"))
+        return redirect(url_for("booking", user_id=user.id))
 
     return render_template("special_prize.html", promo=promo)
 
