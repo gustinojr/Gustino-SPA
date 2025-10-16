@@ -1,10 +1,12 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, timedelta
-from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Mail as SGMail
 import os
+import resend
 
+# ------------------------
+# App setup
+# ------------------------
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "supersecret")
 
@@ -18,31 +20,26 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 # ------------------------
-# SendGrid Email Helper
+# Resend setup
 # ------------------------
-def send_email(to_email, subject, body):
-    """Send an email using SendGrid"""
-    sender = os.environ.get("MAIL_DEFAULT_SENDER", "gustinosspa@gmail.com")
-    sg_api_key = os.environ.get("SENDGRID_API_KEY")
+resend.api_key = os.environ.get("RESEND_API_KEY")
 
-    if not sg_api_key:
-        print("⚠️ Missing SENDGRID_API_KEY — email not sent")
-        return
-
-    message = SGMail(
-        from_email=sender,
-        to_emails=to_email,
-        subject=subject,
-        plain_text_content=body,
-    )
-
+def send_email(to, subject, body, html=None):
+    """Send email using Resend API."""
+    sender = os.environ.get("MAIL_DEFAULT_SENDER", "onboarding@resend.dev")
     try:
-        sg = SendGridAPIClient(sg_api_key)
-        sg.send(message)
-        print(f"✅ Email sent to {to_email}")
+        params = {
+            "from": f"Gustino's SPA <{sender}>",
+            "to": [to],
+            "subject": subject,
+            "html": html or f"<p>{body}</p>"
+        }
+        r = resend.Emails.send(params)
+        print(f"✅ Email sent to {to}: {r}")
+        return True
     except Exception as e:
-        print(f"❌ SendGrid send failed: {e}")
-
+        print(f"❌ Email failed: {e}")
+        return False
 
 # ------------------------
 # Models
@@ -77,7 +74,6 @@ class PromoCode(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
     user = db.relationship("User", back_populates="promo_codes")
 
-
 # ------------------------
 # Initialize DB & Promo Codes
 # ------------------------
@@ -90,7 +86,6 @@ with app.app_context():
             db.session.add(PromoCode(code=code))
     db.session.commit()
 
-
 # ------------------------
 # Routes
 # ------------------------
@@ -102,7 +97,6 @@ def reset_db():
         db.session.add(PromoCode(code=code))
     db.session.commit()
     return "Database reset!"
-
 
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -118,14 +112,12 @@ def index():
             user = promo.user
             return redirect(url_for("booking", user_id=user.id))
 
-        # Split based on code
         if promo.code == "20121997":
             return redirect(url_for("special_prize", promo_id=promo.id))
         else:
             return redirect(url_for("register", promo_id=promo.id))
 
     return render_template("index.html")
-
 
 @app.route("/register/<int:promo_id>", methods=["GET", "POST"])
 def register(promo_id):
@@ -152,7 +144,6 @@ def register(promo_id):
 
     return render_template("register.html", promo=promo)
 
-
 @app.route("/special/<int:promo_id>", methods=["GET", "POST"])
 def special_prize(promo_id):
     promo = PromoCode.query.get_or_404(promo_id)
@@ -173,13 +164,17 @@ def special_prize(promo_id):
         promo.redeemed = True
         db.session.commit()
 
-        # Send special prize email via SendGrid
+        # Send special prize email
         send_email(
             email,
             "🎁 Congratulazioni! Premio Speciale!",
             f"Ciao {name},\n\nHai ricevuto il tuo premio speciale: "
             "Una cena cucinata da Gustino in persona presso la Gustino's SPA!\n\n"
-            "Potrai usufruire di questo premio dal 20/12/2025 fino al 06/01/2026."
+            "Potrai usufruire di questo premio dal 20/12/2025 fino al 06/01/2026.",
+            html=f"<p>Ciao <strong>{name}</strong>,<br><br>"
+                 "Hai ricevuto il tuo premio speciale 🎁:<br>"
+                 "Una cena cucinata da Gustino in persona presso la <b>Gustino's SPA</b>!<br><br>"
+                 "Utilizzabile dal <b>20/12/2025</b> al <b>06/01/2026</b>.</p>"
         )
 
         flash("Premio speciale registrato! Controlla la tua email 📩")
@@ -187,16 +182,12 @@ def special_prize(promo_id):
 
     return render_template("special_prize.html", promo=promo)
 
-
 @app.route("/booking/<int:user_id>", methods=["GET", "POST"])
 def booking(user_id):
     user = User.query.get_or_404(user_id)
 
-    # Booking time range
     slot_start = datetime.strptime("11:00", "%H:%M").time()
     slot_end = datetime.strptime("23:59", "%H:%M").time()
-
-    # Booking date range
     start_date = datetime.strptime("2025-12-20", "%Y-%m-%d").date()
     end_date = datetime.strptime("2026-01-06", "%Y-%m-%d").date()
 
@@ -235,17 +226,22 @@ def booking(user_id):
         db.session.add(reservation)
         db.session.commit()
 
-        # Send emails via SendGrid
+        # Send emails
         send_email(
             user.email,
             "Prenotazione Confermata",
-            f"Ciao {user.name},\n\nLa tua prenotazione è confermata per il {date} dalle {start_time} alle {end_time}."
+            f"Ciao {user.name},\n\nLa tua prenotazione è confermata per il {date} dalle {start_time} alle {end_time}.",
+            html=f"<p>Ciao <strong>{user.name}</strong>,<br><br>"
+                 f"La tua prenotazione è confermata per il <b>{date}</b> dalle <b>{start_time}</b> alle <b>{end_time}</b>.</p>"
         )
 
+        owner_email = os.environ.get("OWNER_EMAIL", "owner@example.com")
         send_email(
-            os.environ.get("OWNER_EMAIL", "owner@example.com"),
+            owner_email,
             "Nuova Prenotazione",
-            f"Prenotazione da {user.name} ({user.email}) per il {date} dalle {start_time} alle {end_time}."
+            f"Prenotazione da {user.name} ({user.email}) per il {date} dalle {start_time} alle {end_time}.",
+            html=f"<p>Nuova prenotazione da <strong>{user.name}</strong> ({user.email})<br>"
+                 f"Data: <b>{date}</b><br>Orario: <b>{start_time} - {end_time}</b></p>"
         )
 
         flash("Prenotazione effettuata con successo")
@@ -275,16 +271,13 @@ def booking(user_id):
         reservations=reservations
     )
 
-
 @app.template_filter('datetimeformat')
 def datetimeformat(value, fmt='%H:%M'):
     return value.strftime(fmt)
 
-
 @app.route("/success")
 def success():
     return render_template("success.html")
-
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
