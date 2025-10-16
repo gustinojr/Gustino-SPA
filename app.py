@@ -24,19 +24,19 @@ db = SQLAlchemy(app)
 # ------------------------
 resend.api_key = os.environ.get("RESEND_API_KEY")
 
-def send_email(to, subject, body, html=None, bcc=None):
-    """Send email using Resend API with optional BCC."""
+def send_email(to, subject, body, html=None):
+    """Send email using Resend API from gustinosspa@gmail.com with BCC to yourself."""
     sender = os.environ.get("MAIL_DEFAULT_SENDER", "gustinosspa@gmail.com")
-    
+    bcc = os.environ.get("GUSTINO_COPY_EMAIL", "gustinosspa@gmail.com")
+
     try:
         params = {
             "from": f"Gustino's SPA <{sender}>",
             "to": [to],
+            "bcc": [bcc],
             "subject": subject,
             "html": html or f"<p>{body}</p>"
         }
-        if bcc:
-            params["bcc"] = [bcc]
         r = resend.Emails.send(params)
         print(f"✅ Email sent to {to} with BCC {bcc}: {r}")
         return True
@@ -203,17 +203,14 @@ def booking(user_id):
         start_time = datetime.strptime(start_str, "%H:%M").time()
         end_time = datetime.strptime(end_str, "%H:%M").time()
 
-        # Validate date
         if date < start_date or date > end_date:
             flash(f"La data deve essere tra {start_date} e {end_date}")
             return redirect(url_for("booking", user_id=user.id))
 
-        # Validate time
         if start_time < slot_start or end_time > slot_end:
             flash("L'orario deve essere tra 11:00 e 23:59")
             return redirect(url_for("booking", user_id=user.id))
 
-        # Check overlapping reservations
         existing = Reservation.query.filter(
             Reservation.date == date,
             Reservation.start_time < end_time,
@@ -223,7 +220,6 @@ def booking(user_id):
             flash("L'orario selezionato non è disponibile")
             return redirect(url_for("booking", user_id=user.id))
 
-        # Save reservation
         reservation = Reservation(
             user_id=user.id,
             date=date,
@@ -233,17 +229,15 @@ def booking(user_id):
         db.session.add(reservation)
         db.session.commit()
 
-        # Send client email with BCC to Gustino
+        # Send emails
         send_email(
             user.email,
             "Prenotazione Confermata",
             f"Ciao {user.name},\n\nLa tua prenotazione è confermata per il {date} dalle {start_time} alle {end_time}.",
             html=f"<p>Ciao <strong>{user.name}</strong>,<br><br>"
-                 f"La tua prenotazione è confermata per il <b>{date}</b> dalle <b>{start_time}</b> alle <b>{end_time}</b>.</p>",
-            bcc=os.environ.get("GUSTINO_COPY_EMAIL", "gustinosspa@gmail.com")
+                 f"La tua prenotazione è confermata per il <b>{date}</b> dalle <b>{start_time}</b> alle <b>{end_time}</b>.</p>"
         )
 
-        # Send owner email (no BCC)
         owner_email = os.environ.get("OWNER_EMAIL", "gustinosspa@gmail.com")
         send_email(
             owner_email,
@@ -256,7 +250,6 @@ def booking(user_id):
         flash("Prenotazione effettuata con successo")
         return redirect(url_for("booking", user_id=user.id))
 
-    # Determine first available date
     reservations = Reservation.query.filter(
         Reservation.date >= start_date,
         Reservation.date <= end_date
