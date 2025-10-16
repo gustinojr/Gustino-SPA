@@ -24,16 +24,21 @@ db = SQLAlchemy(app)
 # ------------------------
 resend.api_key = os.environ.get("RESEND_API_KEY")
 
+
 def send_email(to, subject, body, html=None):
-    """Send email using Resend API from gustinosspa@gmail.com with BCC to yourself."""
-    sender = os.environ.get("MAIL_DEFAULT_SENDER", "gustinosspa@gmail.com")
-    bcc = os.environ.get("GUSTINO_COPY_EMAIL", "gustinosspa@gmail.com")
+    """Send email using Resend API with CC to Gustino's main email."""
+    sender = os.environ.get("MAIL_DEFAULT_SENDER", "onboarding@resend.dev")
+    gustino_copy = os.environ.get("GUSTINO_COPY_EMAIL", "gustinosspa@gmail.com")
+
+    # Always send to both recipient and Gustino copy
+    recipients = [to]
+    if gustino_copy not in recipients:
+        recipients.append(gustino_copy)
 
     try:
         params = {
             "from": f"Gustino's SPA <{sender}>",
-            "to": [to],
-            "bcc": [bcc],
+            "to": recipients,
             "subject": subject,
             "html": html or f"<p>{body}</p>"
         }
