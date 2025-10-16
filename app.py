@@ -1,7 +1,8 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
-from flask_mail import Mail, Message
 from datetime import datetime, timedelta
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail as SGMail
 import os
 
 app = Flask(__name__)
@@ -17,17 +18,31 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 # ------------------------
-# Mail
+# SendGrid Email Helper
 # ------------------------
-app.config.update(
-    MAIL_SERVER=os.environ.get("MAIL_SERVER", "smtp.gmail.com"),
-    MAIL_PORT=int(os.environ.get("MAIL_PORT", 587)),
-    MAIL_USE_TLS=True,
-    MAIL_USERNAME=os.environ.get("MAIL_USERNAME"),
-    MAIL_PASSWORD=os.environ.get("MAIL_PASSWORD"),
-    MAIL_DEFAULT_SENDER=os.environ.get("MAIL_DEFAULT_SENDER", "gustinosspa@gmail.com"),
-)
-mail = Mail(app)
+def send_email(to_email, subject, body):
+    """Send an email using SendGrid"""
+    sender = os.environ.get("MAIL_DEFAULT_SENDER", "gustinosspa@gmail.com")
+    sg_api_key = os.environ.get("SENDGRID_API_KEY")
+
+    if not sg_api_key:
+        print("⚠️ Missing SENDGRID_API_KEY — email not sent")
+        return
+
+    message = SGMail(
+        from_email=sender,
+        to_emails=to_email,
+        subject=subject,
+        plain_text_content=body,
+    )
+
+    try:
+        sg = SendGridAPIClient(sg_api_key)
+        sg.send(message)
+        print(f"✅ Email sent to {to_email}")
+    except Exception as e:
+        print(f"❌ SendGrid send failed: {e}")
+
 
 # ------------------------
 # Models
@@ -62,6 +77,7 @@ class PromoCode(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
     user = db.relationship("User", back_populates="promo_codes")
 
+
 # ------------------------
 # Initialize DB & Promo Codes
 # ------------------------
@@ -73,6 +89,7 @@ with app.app_context():
         if not PromoCode.query.filter_by(code=code).first():
             db.session.add(PromoCode(code=code))
     db.session.commit()
+
 
 # ------------------------
 # Routes
@@ -156,18 +173,14 @@ def special_prize(promo_id):
         promo.redeemed = True
         db.session.commit()
 
-        # Send special prize email
-        msg = Message(
-            subject="🎁 Congratulazioni! Premio Speciale!",
-            recipients=[email],
-            body=(
-                f"Ciao {name},\n\n"
-                "Hai ricevuto il tuo premio speciale: "
-                "Una cena cucinata da Gustino in persona presso la Gustino's SPA!\n\n"
-                "Potrai usufruire di questo premio dal 20/12/2025 fino al 06/01/2026."
-            )
+        # Send special prize email via SendGrid
+        send_email(
+            email,
+            "🎁 Congratulazioni! Premio Speciale!",
+            f"Ciao {name},\n\nHai ricevuto il tuo premio speciale: "
+            "Una cena cucinata da Gustino in persona presso la Gustino's SPA!\n\n"
+            "Potrai usufruire di questo premio dal 20/12/2025 fino al 06/01/2026."
         )
-        mail.send(msg)
 
         flash("Premio speciale registrato! Controlla la tua email 📩")
         return redirect(url_for("booking", user_id=user.id))
@@ -192,22 +205,18 @@ def booking(user_id):
         start_str = request.form.get("start_time")
         end_str = request.form.get("end_time")
 
-        # Convert to proper datetime objects
         date = datetime.strptime(date_str, "%Y-%m-%d").date()
         start_time = datetime.strptime(start_str, "%H:%M").time()
         end_time = datetime.strptime(end_str, "%H:%M").time()
 
-        # Validate date
         if date < start_date or date > end_date:
             flash(f"La data deve essere tra {start_date} e {end_date}")
             return redirect(url_for("booking", user_id=user.id))
 
-        # Validate time
         if start_time < slot_start or end_time > slot_end:
             flash("L'orario deve essere tra 11:00 e 23:59")
             return redirect(url_for("booking", user_id=user.id))
 
-        # Check overlapping reservations
         existing = Reservation.query.filter(
             Reservation.date == date,
             Reservation.start_time < end_time,
@@ -217,7 +226,6 @@ def booking(user_id):
             flash("L'orario selezionato non è disponibile")
             return redirect(url_for("booking", user_id=user.id))
 
-        # Save reservation
         reservation = Reservation(
             user_id=user.id,
             date=date,
@@ -227,25 +235,22 @@ def booking(user_id):
         db.session.add(reservation)
         db.session.commit()
 
-        # Send confirmation emails
-        client_msg = Message(
-            subject="Prenotazione Confermata",
-            recipients=[user.email],
-            body=f"Ciao {user.name},\n\nLa tua prenotazione è confermata per il {date} dalle {start_time} alle {end_time}."
+        # Send emails via SendGrid
+        send_email(
+            user.email,
+            "Prenotazione Confermata",
+            f"Ciao {user.name},\n\nLa tua prenotazione è confermata per il {date} dalle {start_time} alle {end_time}."
         )
-        mail.send(client_msg)
 
-        owner_msg = Message(
-            subject="Nuova Prenotazione",
-            recipients=[os.environ.get("OWNER_EMAIL", "owner@example.com")],
-            body=f"Prenotazione da {user.name} ({user.email}) per il {date} dalle {start_time} alle {end_time}."
+        send_email(
+            os.environ.get("OWNER_EMAIL", "owner@example.com"),
+            "Nuova Prenotazione",
+            f"Prenotazione da {user.name} ({user.email}) per il {date} dalle {start_time} alle {end_time}."
         )
-        mail.send(owner_msg)
 
         flash("Prenotazione effettuata con successo")
         return redirect(url_for("booking", user_id=user.id))
 
-    # Determine first available date
     reservations = Reservation.query.filter(
         Reservation.date >= start_date,
         Reservation.date <= end_date
