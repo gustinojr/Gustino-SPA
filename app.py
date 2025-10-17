@@ -27,7 +27,7 @@ resend.api_key = os.environ.get("RESEND_API_KEY")
 
 def send_email(to, subject, body, html=None):
     """Send email using Resend API with CC to Gustino's main email."""
-    sender = os.environ.get("MAIL_DEFAULT_SENDER", "onboarding@resend.dev")
+    sender = os.environ.get("MAIL_DEFAULT_SENDER", "no-reply@send.gustinospa.dpdns.org")
     gustino_copy = os.environ.get("GUSTINO_COPY_EMAIL", "gustinosspa@gmail.com")
 
     # Always send to both recipient and Gustino copy
@@ -43,7 +43,7 @@ def send_email(to, subject, body, html=None):
             "html": html or f"<p>{body}</p>"
         }
         r = resend.Emails.send(params)
-        print(f"✅ Email sent to {to} with BCC {bcc}: {r}")
+        print(f"✅ Email sent to {to} with CC to Gustino copy: {r}")
         return True
     except Exception as e:
         print(f"❌ Email failed: {e}")
