@@ -124,6 +124,16 @@ with app.app_context():
 # ------------------------
 # Routes
 # ------------------------
+@app.route("/reset-db")
+def reset_db():
+    """Reset the database and reload default promo codes."""
+    db.drop_all()
+    db.create_all()
+    for code in DEFAULT_PROMO_CODES:
+        db.session.add(PromoCode(code=code))
+    db.session.commit()
+    return "✅ Database reset and promo codes reloaded."
+
 @app.route("/")
 def home():
     return render_template("index.html")
