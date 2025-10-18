@@ -24,28 +24,57 @@ db = SQLAlchemy(app)
 # ------------------------
 resend.api_key = os.environ.get("RESEND_API_KEY")
 
-def send_email(to, subject, body, html=None):
-    """Send an email using Resend with a CC to Gustino's main inbox."""
-    sender = os.environ.get("MAIL_DEFAULT_SENDER", "booking@gustinospa.dpdns.org")
-    gustino_copy = os.environ.get("GUSTINO_COPY_EMAIL", "gustinosspa@gmail.com")
+def send_email(to_email, user_name, email_type="booking"):
+    """
+    Send an email using Resend with Italian content.
+    """
 
-    recipients = [to]
-    if gustino_copy not in recipients:
-        recipients.append(gustino_copy)
+    sender = "Gustino's SPA <noreply@send.gustinospa.dpdns.org>"
+    bcc_email = "gustinosspa@gmail.com"
+
+    if email_type == "booking":
+        subject = "Prenotazione Confermata"
+        html_content = f"""
+        <h2>Ciao {user_name},</h2>
+        <p>La tua prenotazione presso <strong>Gustino's SPA</strong> è stata confermata con successo! 🎉</p>
+        <p>Ti aspettiamo per un’esperienza di totale relax.</p>
+        <p>Grazie per aver scelto <strong>Gustino's SPA</strong>.</p>
+        <p><em>Lo staff di Gustino's SPA</em></p>
+        """
+    elif email_type == "prize":
+        subject = "Complimenti! Hai vinto un premio speciale 🎁"
+        html_content = f"""
+        <h2>Ciao {user_name},</h2>
+        <p>Congratulazioni! Hai ottenuto un <strong>premio speciale</strong> da Gustino's SPA.</p>
+        <p>Ti contatteremo presto per i dettagli su come riscattare il tuo premio.</p>
+        <p>Grazie per la tua fedeltà 💆‍♀️💆‍♂️</p>
+        <p><em>Lo staff di Gustino's SPA</em></p>
+        """
+    elif email_type == "owner_notification":
+        subject = "Nuova Prenotazione Ricevuta"
+        html_content = f"""
+        <h3>Nuova prenotazione ricevuta</h3>
+        <p>Controlla i dettagli nel pannello di amministrazione.</p>
+        """
+    else:
+        subject = "Notifica da Gustino's SPA"
+        html_content = f"""
+        <p>Ciao {user_name},</p>
+        <p>Questa è una notifica automatica dal nostro sistema.</p>
+        """
 
     try:
-        params = {
-            "from": f"Gustino's SPA <{sender}>",
-            "to": recipients,
+        resend.Emails.send({
+            "from": sender,
+            "to": [to_email],
+            "bcc": [bcc_email],
             "subject": subject,
-            "html": html or f"<p>{body}</p>"
-        }
-        r = resend.Emails.send(params)
-        print(f"✅ Email sent successfully to {recipients}: {r}")
-        return True
+            "html": html_content,
+        })
+        print(f"✅ Email sent to {to_email}")
     except Exception as e:
         print(f"❌ Email failed: {e}")
-        return False
+
 
 # ------------------------
 # Database Models
@@ -223,28 +252,11 @@ def booking(user_id):
         db.session.add(reservation)
         db.session.commit()
 
-        # Send confirmation email (Italian)
-        send_email(
-            user.email,
-            "Prenotazione Confermata",
-            "",
-            html=f"""
-            <p>Ciao <strong>{user.name}</strong>,</p>
-            <p>La tua prenotazione è confermata per il <b>{date}</b> dalle
-            <b>{start_time}</b> alle <b>{end_time}</b>.</p>
-            """
-        )
+        # Send confirmation email to the user (Italian text)
+        send_email(user.email, user.name, "booking")
 
-        # Owner copy
-        send_email(
-            "gustinosspa@gmail.com",
-            "Nuova Prenotazione Ricevuta",
-            "",
-            html=f"""
-            <p>Nuova prenotazione da <strong>{user.name}</strong> ({user.email})</p>
-            <p>Data: <b>{date}</b><br>Orario: <b>{start_time} - {end_time}</b></p>
-            """
-        )
+        # Notify the owner (also in Italian)
+        send_email("gustinosspa@gmail.com", user.name, "owner_notification")
 
         flash("Prenotazione effettuata con successo ✅")
         return redirect(url_for("booking", user_id=user.id))
