@@ -26,7 +26,7 @@ resend.api_key = os.environ.get("RESEND_API_KEY")
 
 def send_email(to, subject, body, html=None):
     """Send an email using Resend with a CC to Gustino's main inbox."""
-    sender = os.environ.get("MAIL_DEFAULT_SENDER", "booking@send.gustinospa.dpdns.org")
+    sender = os.environ.get("MAIL_DEFAULT_SENDER", "booking@gustinospa.dpdns.org")
     gustino_copy = os.environ.get("GUSTINO_COPY_EMAIL", "gustinosspa@gmail.com")
 
     recipients = [to]
