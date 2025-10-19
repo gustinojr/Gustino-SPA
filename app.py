@@ -26,42 +26,57 @@ resend.api_key = os.environ.get("RESEND_API_KEY")
 
 def send_email(to_email, user_name, email_type="booking"):
     """
-    Send an email using Resend with Italian content.
+    Send an email using Resend with better deliverability.
+    Includes plain text + HTML, Reply-To, and proper signature.
     """
 
     sender = "Gustino's SPA <staff@gustinospa.dpdns.org>"
     bcc_email = "gustinosspa@gmail.com"
+    reply_to = "info@send.gustinospa.dpdns.org"
 
     if email_type == "booking":
         subject = "Prenotazione Confermata"
+        text_content = (
+            f"Ciao {user_name},\n\n"
+            "La tua prenotazione presso Gustino's SPA è stata confermata con successo!\n"
+            "Ti aspettiamo per un’esperienza di totale relax.\n\n"
+            "Grazie per aver scelto Gustino's SPA.\n"
+            "-- Lo staff di Gustino's SPA"
+        )
         html_content = f"""
         <h2>Ciao {user_name},</h2>
         <p>La tua prenotazione presso <strong>Gustino's SPA</strong> è stata confermata con successo! 🎉</p>
         <p>Ti aspettiamo per un’esperienza di totale relax.</p>
         <p>Grazie per aver scelto <strong>Gustino's SPA</strong>.</p>
-        <p><em>Lo staff di Gustino's SPA</em></p>
+        <br>
+        <p style="font-size:12px;color:#888;">
+            Ricevi questa email perché hai effettuato una prenotazione su Gustino's SPA.<br>
+            Se non riconosci questa attività, ignora semplicemente questo messaggio.
+        </p>
         """
+
     elif email_type == "prize":
         subject = "Complimenti! Hai vinto un premio speciale 🎁"
+        text_content = (
+            f"Ciao {user_name},\n\n"
+            "Congratulazioni! Hai ottenuto un premio speciale da Gustino's SPA.\n"
+            "Ti contatteremo presto per i dettagli su come riscattare il tuo premio.\n\n"
+            "-- Lo staff di Gustino's SPA"
+        )
         html_content = f"""
         <h2>Ciao {user_name},</h2>
         <p>Congratulazioni! Hai ottenuto un <strong>premio speciale</strong> da Gustino's SPA.</p>
         <p>Ti contatteremo presto per i dettagli su come riscattare il tuo premio.</p>
-        <p>Grazie per la tua fedeltà 💆‍♀️💆‍♂️</p>
-        <p><em>Lo staff di Gustino's SPA</em></p>
+        <br>
+        <p style="font-size:12px;color:#888;">
+            Ricevi questa email perché hai partecipato a una promozione di Gustino's SPA.
+        </p>
         """
-    elif email_type == "owner_notification":
-        subject = "Nuova Prenotazione Ricevuta"
-        html_content = f"""
-        <h3>Nuova prenotazione ricevuta</h3>
-        <p>Controlla i dettagli nel pannello di amministrazione.</p>
-        """
+
     else:
         subject = "Notifica da Gustino's SPA"
-        html_content = f"""
-        <p>Ciao {user_name},</p>
-        <p>Questa è una notifica automatica dal nostro sistema.</p>
-        """
+        text_content = f"Ciao {user_name},\n\nQuesta è una notifica automatica dal nostro sistema."
+        html_content = f"<p>Ciao {user_name},</p><p>Questa è una notifica automatica dal nostro sistema.</p>"
 
     try:
         resend.Emails.send({
@@ -69,7 +84,12 @@ def send_email(to_email, user_name, email_type="booking"):
             "to": [to_email],
             "bcc": [bcc_email],
             "subject": subject,
+            "text": text_content,
             "html": html_content,
+            "reply_to": [reply_to],
+            "headers": {
+                "List-Unsubscribe": "<mailto:unsubscribe@send.gustinospa.dpdns.org>"
+            }
         })
         print(f"✅ Email sent to {to_email}")
     except Exception as e:
