@@ -204,17 +204,8 @@ def special_prize(promo_id):
         db.session.commit()
 
         # Send email (Italian text)
-        send_email(
-            email,
-            "🎁 Congratulazioni! Premio Speciale!",
-            "",
-            html=f"""
-            <p>Ciao <strong>{name}</strong>,</p>
-            <p>Hai ricevuto il tuo <b>premio speciale</b> 🎁:<br>
-            Una cena cucinata da Gustino in persona presso la <b>Gustino's SPA</b>!</p>
-            <p>Utilizzabile dal <b>20/12/2025</b> al <b>06/01/2026</b>.</p>
-            """
-        )
+        send_email(email, name, "prize")
+
 
         flash("Premio speciale registrato! Controlla la tua email 📩")
         return redirect(url_for("booking", user_id=user.id))
