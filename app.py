@@ -29,7 +29,7 @@ def send_email(to_email, user_name, email_type="booking"):
     Send an email using Resend with Italian content.
     """
 
-    sender = "Gustino's SPA <noreply@send.gustinospa.dpdns.org>"
+    sender = "Gustino's SPA <noreply@gustinospa.dpdns.org>"
     bcc_email = "gustinosspa@gmail.com"
 
     if email_type == "booking":
@@ -253,18 +253,35 @@ def booking(user_id):
         db.session.add(reservation)
         db.session.commit()
 
-        # Send confirmation email to the user (Italian text)
         send_email(user.email, user.name, "booking")
-
-        # Notify the owner (also in Italian)
         send_email("gustinosspa@gmail.com", user.name, "owner_notification")
 
         flash("Prenotazione effettuata con successo ✅")
         return redirect(url_for("booking", user_id=user.id))
 
-    reservations = Reservation.query.all()
-    return render_template("booking.html", user=user, reservations=reservations)
+    # Get all booked dates
+    reservations = Reservation.query.filter(
+        Reservation.date >= start_date,
+        Reservation.date <= end_date
+    ).all()
+    booked_dates = {r.date for r in reservations}
 
+    # Find the first available date
+    first_available = start_date
+    while first_available in booked_dates and first_available <= end_date:
+        first_available += timedelta(days=1)
+
+    if first_available > end_date:
+        first_available = None
+
+    return render_template(
+        "booking.html",
+        user=user,
+        start_date=start_date,
+        end_date=end_date,
+        first_available=first_available,
+        reservations=reservations
+    )
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
