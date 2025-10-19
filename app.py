@@ -29,7 +29,7 @@ def send_email(to_email, user_name, email_type="booking"):
     Send an email using Resend with Italian content.
     """
 
-    sender = "Gustino's SPA <noreply@gustinospa.dpdns.org>"
+    sender = "Gustino's SPA <staff@gustinospa.dpdns.org>"
     bcc_email = "gustinosspa@gmail.com"
 
     if email_type == "booking":
