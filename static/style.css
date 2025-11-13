@@ -1,4 +1,4 @@
-/* === Base layout and background === */
+/* === Responsive background image setup === */
 body {
   margin: 0;
   padding: 0;
@@ -8,12 +8,12 @@ body {
   align-items: center;
   font-family: 'Trebuchet MS', sans-serif;
 
-  /* ✅ Fully responsive background */
+  /* ✅ Default background for desktop/tablet */
   background-image: url("capybara.jpeg");
   background-position: center center;
   background-repeat: no-repeat;
-  background-size: cover;         /* Scales proportionally to fill screen */
-  background-attachment: scroll;  /* Fixes zoom/cropping issues on mobile */
+  background-size: cover;
+  background-attachment: fixed;
 }
 
 
@@ -115,12 +115,13 @@ button:hover {
 }
 
 /* === Responsive Design === */
-
-/* Tablets and small laptops */
+/* ✅ Mobile optimization: use smaller image & fix zoom issues */
 @media (max-width: 768px) {
   body {
-    background-attachment: scroll; /* ✅ smoother on mobile */
-    padding: 1rem;
+    background-image: url("capybara_small.jpeg");
+    background-attachment: scroll; /* smoother on mobile */
+    background-size: cover;
+    background-position: center;
   }
 
   .container {
