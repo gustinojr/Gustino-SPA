@@ -2,17 +2,20 @@
 body {
   margin: 0;
   padding: 0;
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
   font-family: 'Trebuchet MS', sans-serif;
 
-  /* ✅ Responsive background image */
-  background: url("capybara.jpeg") no-repeat center center fixed;
-  background-size: cover;
-  background-attachment: fixed;
+  /* ✅ Fully responsive background */
+  background-image: url("capybara.jpeg");
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: cover;         /* Scales proportionally to fill screen */
+  background-attachment: scroll;  /* Fixes zoom/cropping issues on mobile */
 }
+
 
 /* === Main container (promo box) === */
 .container {
