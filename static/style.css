@@ -149,8 +149,9 @@ button:hover {
   body {
     background-image: url("capybara_small.jpeg");
     background-attachment: scroll; /* smoother on mobile */
-    background-size: cover;
+    background-size: auto;
     background-position: center;
+    background-repeat: initial;
   }
   
   .container {
