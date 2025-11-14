@@ -14,7 +14,8 @@ app.secret_key = os.environ.get("SECRET_KEY", "supersecretkey")
 # Database setup
 # ------------------------
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
-    "DATABASE_URL", "postgresql://postgres:password@localhost:5432/gustino"
+    "DATABASE_URL",
+    "postgresql://postgres:password@localhost:5432/gustino"
 )
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
@@ -26,69 +27,90 @@ resend.api_key = os.environ.get("RESEND_API_KEY")
 
 def send_email(to_email, user_name, email_type="booking"):
     """
-    Send an email using Resend with better deliverability.
-    Includes plain text + HTML, Reply-To, and proper signature.
+    Safe, Gmail-friendly email sender.
+    Uses domain-aligned From and Reply-To to avoid spam filtering.
     """
 
-    sender = "Gustino's SPA <staff@gustinospa.dpdns.org>"
-    bcc_email = "gustinosspa@gmail.com"
-    reply_to = "info@send.gustinospa.dpdns.org"
+    sender = "Gustino's SPA <info@gustinospa.dpdns.org>"
+    reply_to = ["info@gustinospa.dpdns.org"]
 
+    # -------------------------------------------------------------------
+    # BOOKING CONFIRMATION
+    # -------------------------------------------------------------------
     if email_type == "booking":
-        subject = "Prenotazione Confermata"
+        subject = "Conferma Prenotazione - Gustino's SPA"
         text_content = (
             f"Ciao {user_name},\n\n"
-            "La tua prenotazione presso Gustino's SPA è stata confermata con successo!\n"
-            "Ti aspettiamo per un’esperienza di totale relax.\n\n"
-            "Grazie per aver scelto Gustino's SPA.\n"
-            "-- Lo staff di Gustino's SPA"
+            "La tua prenotazione presso Gustino's SPA è stata confermata.\n"
+            "Ti aspettiamo per un momento di relax.\n\n"
+            "A presto,\n"
+            "Lo staff di Gustino's SPA"
         )
         html_content = f"""
-        <h2>Ciao {user_name},</h2>
-        <p>La tua prenotazione presso <strong>Gustino's SPA</strong> è stata confermata con successo! 🎉</p>
-        <p>Ti aspettiamo per un’esperienza di totale relax.</p>
-        <p>Grazie per aver scelto <strong>Gustino's SPA</strong>.</p>
+        <h3>Ciao {user_name},</h3>
+        <p>La tua prenotazione presso <strong>Gustino's SPA</strong> è stata confermata.</p>
+        <p>Ti aspettiamo per un momento di relax.</p>
         <br>
-        <p style="font-size:12px;color:#888;">
-            Ricevi questa email perché hai effettuato una prenotazione su Gustino's SPA.<br>
-            Se non riconosci questa attività, ignora semplicemente questo messaggio.
+        <p style="font-size:12px;color:#666;">
+            Hai ricevuto questa email in seguito a una tua richiesta su Gustino's SPA.
+            Se non riconosci l'azione, puoi ignorare questo messaggio.
         </p>
         """
 
+    # -------------------------------------------------------------------
+    # PRIZE NOTIFICATION
+    # -------------------------------------------------------------------
     elif email_type == "prize":
-        subject = "Complimenti! Hai vinto un premio speciale 🎁"
+        subject = "Informazioni sul tuo premio - Gustino's SPA"
         text_content = (
             f"Ciao {user_name},\n\n"
-            "Congratulazioni! Hai ottenuto un premio speciale da Gustino's SPA.\n"
-            "Ti contatteremo presto per i dettagli su come riscattare il tuo premio.\n\n"
-            "-- Lo staff di Gustino's SPA"
+            "Hai ottenuto un premio da Gustino's SPA.\n"
+            "Ti contatteremo a breve con ulteriori dettagli.\n\n"
+            "Lo staff di Gustino's SPA"
         )
         html_content = f"""
-        <h2>Ciao {user_name},</h2>
-        <p>Congratulazioni! Hai ottenuto un <strong>premio speciale</strong> da Gustino's SPA.</p>
-        <p>Ti contatteremo presto per i dettagli su come riscattare il tuo premio.</p>
+        <h3>Ciao {user_name},</h3>
+        <p>Hai ottenuto un premio speciale da <strong>Gustino's SPA</strong>.</p>
+        <p>Ti contatteremo presto con ulteriori dettagli.</p>
         <br>
-        <p style="font-size:12px;color:#888;">
-            Ricevi questa email perché hai partecipato a una promozione di Gustino's SPA.
+        <p style="font-size:12px;color:#666;">
+            Hai ricevuto questa email per la partecipazione a una promozione.
         </p>
+        """
+
+    # -------------------------------------------------------------------
+    # OWNER NOTIFICATION (INTERNAL)
+    # -------------------------------------------------------------------
+    elif email_type == "owner_notification":
+        subject = "Nuova Prenotazione Ricevuta - Gustino's SPA"
+        text_content = (
+            f"Nuova prenotazione effettuata da: {user_name}\n"
+            "Accedi al pannello per visualizzare maggiori dettagli."
+        )
+        html_content = f"""
+        <h3>Nuova prenotazione</h3>
+        <p><strong>Cliente:</strong> {user_name}</p>
+        <p>Accedi al pannello amministrativo per maggiori dettagli.</p>
         """
 
     else:
         subject = "Notifica da Gustino's SPA"
-        text_content = f"Ciao {user_name},\n\nQuesta è una notifica automatica dal nostro sistema."
-        html_content = f"<p>Ciao {user_name},</p><p>Questa è una notifica automatica dal nostro sistema.</p>"
+        text_content = (
+            f"Ciao {user_name},\n\n"
+            "Questa è una notifica automatica dal sistema."
+        )
+        html_content = f"<p>Ciao {user_name},</p><p>Questa è una notifica dal sistema.</p>"
 
     try:
         resend.Emails.send({
             "from": sender,
             "to": [to_email],
-            "bcc": [bcc_email],
             "subject": subject,
             "text": text_content,
             "html": html_content,
-            "reply_to": [reply_to],
+            "reply_to": reply_to,
             "headers": {
-                "List-Unsubscribe": "<mailto:unsubscribe@send.gustinospa.dpdns.org>"
+                "List-Unsubscribe": "<mailto:unsubscribe@gustinospa.dpdns.org>"
             }
         })
         print(f"✅ Email sent to {to_email}")
@@ -129,6 +151,7 @@ class PromoCode(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
     user = db.relationship("User", back_populates="promo_codes")
 
+
 # ------------------------
 # Initialize DB & Promo Codes
 # ------------------------
@@ -146,13 +169,13 @@ with app.app_context():
 # ------------------------
 @app.route("/reset-db")
 def reset_db():
-    """Reset the database and reload default promo codes."""
     db.drop_all()
     db.create_all()
     for code in DEFAULT_PROMO_CODES:
         db.session.add(PromoCode(code=code))
     db.session.commit()
     return "✅ Database reset and promo codes reloaded."
+
 
 @app.route("/")
 def home():
@@ -223,9 +246,7 @@ def special_prize(promo_id):
         promo.redeemed = True
         db.session.commit()
 
-        # Send email (Italian text)
         send_email(email, name, "prize")
-
 
         flash("Premio speciale registrato! Controlla la tua email 📩")
         return redirect(url_for("booking", user_id=user.id))
@@ -279,14 +300,12 @@ def booking(user_id):
         flash("Prenotazione effettuata con successo ✅")
         return redirect(url_for("booking", user_id=user.id))
 
-    # Get all booked dates
     reservations = Reservation.query.filter(
         Reservation.date >= start_date,
         Reservation.date <= end_date
     ).all()
     booked_dates = {r.date for r in reservations}
 
-    # Find the first available date
     first_available = start_date
     while first_available in booked_dates and first_available <= end_date:
         first_available += timedelta(days=1)
@@ -303,5 +322,9 @@ def booking(user_id):
         reservations=reservations
     )
 
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
+    app.run(host="0.0.0.0",
+            port=int(os.environ.get("PORT", 5000)),
+            debug=True)
+    
