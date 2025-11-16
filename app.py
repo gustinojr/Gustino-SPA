@@ -31,8 +31,8 @@ def send_email(to_email, user_name, email_type="booking"):
     Uses domain-aligned From and Reply-To to avoid spam filtering.
     """
 
-    sender = "Gustino's SPA <info@gustinospa.dpdns.org>"
-    reply_to = ["info@gustinospa.dpdns.org"]
+    sender = "Gustino's SPA <staff@gustinospa.dpdns.org>"
+    reply_to = ["saff@gustinospa.dpdns.org"]
 
     # -------------------------------------------------------------------
     # BOOKING CONFIRMATION
