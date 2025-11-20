@@ -2,7 +2,9 @@ from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, timedelta
 import os
-import resend
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 # ------------------------
 # Flask app setup
@@ -21,102 +23,96 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 # ------------------------
-# Resend setup
+# Gmail SMTP Email Function
 # ------------------------
-resend.api_key = os.environ.get("RESEND_API_KEY")
-
 def send_email(to_email, user_name, email_type="booking"):
     """
-    Safe, Gmail-friendly email sender.
-    Uses domain-aligned From and Reply-To to avoid spam filtering.
+    Send email using Gmail SMTP.
+    Requires environment variables:
+    - GMAIL_USER
+    - GMAIL_PASS (App Password)
     """
 
-    sender = "Gustino's SPA <staff@gustinospa.dpdns.org>"
-    reply_to = ["saff@gustinospa.dpdns.org"]
+    gmail_user = os.environ.get("GMAIL_USER")
+    gmail_pass = os.environ.get("GMAIL_PASS")
 
-    # -------------------------------------------------------------------
-    # BOOKING CONFIRMATION
-    # -------------------------------------------------------------------
+    if not gmail_user or not gmail_pass:
+        print("❌ Missing Gmail SMTP credentials")
+        return
+
+    # ----------------------------------------------------------------------
+    # EMAIL CONTENTS BASED ON TYPE
+    # ----------------------------------------------------------------------
     if email_type == "booking":
         subject = "Conferma Prenotazione - Gustino's SPA"
-        text_content = (
-            f"Ciao {user_name},\n\n"
-            "La tua prenotazione presso Gustino's SPA è stata confermata.\n"
-            "Ti aspettiamo per un momento di relax.\n\n"
-            "A presto,\n"
-            "Lo staff di Gustino's SPA"
-        )
-        html_content = f"""
-        <h3>Ciao {user_name},</h3>
-        <p>La tua prenotazione presso <strong>Gustino's SPA</strong> è stata confermata.</p>
-        <p>Ti aspettiamo per un momento di relax.</p>
-        <br>
-        <p style="font-size:12px;color:#666;">
-            Hai ricevuto questa email in seguito a una tua richiesta su Gustino's SPA.
-            Se non riconosci l'azione, puoi ignorare questo messaggio.
-        </p>
-        """
+        text = f"""
+Ciao {user_name},
 
-    # -------------------------------------------------------------------
-    # PRIZE NOTIFICATION
-    # -------------------------------------------------------------------
+La tua prenotazione presso Gustino's SPA è stata confermata.
+Ti aspettiamo per un momento di relax.
+
+A presto,
+Lo staff di Gustino's SPA
+"""
+        html = f"""
+<h3>Ciao {user_name},</h3>
+<p>La tua prenotazione presso <strong>Gustino's SPA</strong> è stata confermata.</p>
+<p>Ti aspettiamo per un momento di relax.</p>
+<p style="font-size:12px;color:#666;">Email generata automaticamente.</p>
+"""
+
     elif email_type == "prize":
         subject = "Informazioni sul tuo premio - Gustino's SPA"
-        text_content = (
-            f"Ciao {user_name},\n\n"
-            "Hai ottenuto un premio da Gustino's SPA.\n"
-            "Ti contatteremo a breve con ulteriori dettagli.\n\n"
-            "Lo staff di Gustino's SPA"
-        )
-        html_content = f"""
-        <h3>Ciao {user_name},</h3>
-        <p>Hai ottenuto un premio speciale da <strong>Gustino's SPA</strong>.</p>
-        <p>Ti contatteremo presto con ulteriori dettagli.</p>
-        <br>
-        <p style="font-size:12px;color:#666;">
-            Hai ricevuto questa email per la partecipazione a una promozione.
-        </p>
-        """
+        text = f"""
+Ciao {user_name},
 
-    # -------------------------------------------------------------------
-    # OWNER NOTIFICATION (INTERNAL)
-    # -------------------------------------------------------------------
+Hai ottenuto un premio da Gustino's SPA.
+Ti contatteremo a breve con ulteriori dettagli.
+
+Lo staff di Gustino's SPA
+"""
+        html = f"""
+<h3>Ciao {user_name},</h3>
+<p>Hai ottenuto un premio speciale da <strong>Gustino's SPA</strong>.</p>
+<p>Ti ricontatteremo presto con ulteriori dettagli.</p>
+"""
+
     elif email_type == "owner_notification":
         subject = "Nuova Prenotazione Ricevuta - Gustino's SPA"
-        text_content = (
-            f"Nuova prenotazione effettuata da: {user_name}\n"
-            "Accedi al pannello per visualizzare maggiori dettagli."
-        )
-        html_content = f"""
-        <h3>Nuova prenotazione</h3>
-        <p><strong>Cliente:</strong> {user_name}</p>
-        <p>Accedi al pannello amministrativo per maggiori dettagli.</p>
-        """
+        text = f"Nuova prenotazione effettuata da: {user_name}"
+        html = f"""
+<h3>Nuova prenotazione</h3>
+<p><strong>Cliente:</strong> {user_name}</p>
+"""
 
     else:
-        subject = "Notifica da Gustino's SPA"
-        text_content = (
-            f"Ciao {user_name},\n\n"
-            "Questa è una notifica automatica dal sistema."
-        )
-        html_content = f"<p>Ciao {user_name},</p><p>Questa è una notifica dal sistema.</p>"
+        subject = "Notifica - Gustino's SPA"
+        text = f"Ciao {user_name},\nQuesta è una notifica automatica."
+        html = f"<p>Ciao {user_name}, questa è una notifica automatica.</p>"
 
+    # ----------------------------------------------------------------------
+    # SMTP MESSAGE BUILDING
+    # ----------------------------------------------------------------------
+    msg = MIMEMultipart("alternative")
+    msg["From"] = f"Gustino's SPA <{gmail_user}>"
+    msg["To"] = to_email
+    msg["Subject"] = subject
+
+    msg.attach(MIMEText(text, "plain"))
+    msg.attach(MIMEText(html, "html"))
+
+    # ----------------------------------------------------------------------
+    # SMTP SENDING
+    # ----------------------------------------------------------------------
     try:
-        resend.Emails.send({
-            "from": sender,
-            "to": [to_email],
-            "subject": subject,
-            "text": text_content,
-            "html": html_content,
-            "reply_to": reply_to,
-            "headers": {
-                "List-Unsubscribe": "<mailto:unsubscribe@gustinospa.dpdns.org>"
-            }
-        })
+        server = smtplib.SMTP("smtp.gmail.com", 587)
+        server.starttls()
+        server.login(gmail_user, gmail_pass)
+        server.sendmail(gmail_user, to_email, msg.as_string())
+        server.quit()
         print(f"✅ Email sent to {to_email}")
     except Exception as e:
         print(f"❌ Email failed: {e}")
-
 
 # ------------------------
 # Database Models
@@ -130,7 +126,6 @@ class User(db.Model):
     reservations = db.relationship("Reservation", back_populates="user")
     promo_codes = db.relationship("PromoCode", back_populates="user")
 
-
 class Reservation(db.Model):
     __tablename__ = "reservations"
     id = db.Column(db.Integer, primary_key=True)
@@ -142,7 +137,6 @@ class Reservation(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
     user = db.relationship("User", back_populates="reservations")
 
-
 class PromoCode(db.Model):
     __tablename__ = "promo_codes"
     id = db.Column(db.Integer, primary_key=True)
@@ -150,7 +144,6 @@ class PromoCode(db.Model):
     redeemed = db.Column(db.Boolean, default=False)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
     user = db.relationship("User", back_populates="promo_codes")
-
 
 # ------------------------
 # Initialize DB & Promo Codes
@@ -176,11 +169,9 @@ def reset_db():
     db.session.commit()
     return "✅ Database reset and promo codes reloaded."
 
-
 @app.route("/")
 def home():
     return render_template("index.html")
-
 
 @app.route("/", methods=["POST"])
 def handle_code():
@@ -198,7 +189,6 @@ def handle_code():
         return redirect(url_for("special_prize", promo_id=promo.id))
     else:
         return redirect(url_for("register", promo_id=promo.id))
-
 
 @app.route("/register/<int:promo_id>", methods=["GET", "POST"])
 def register(promo_id):
@@ -224,7 +214,6 @@ def register(promo_id):
         return redirect(url_for("booking", user_id=user.id))
 
     return render_template("register.html", promo=promo)
-
 
 @app.route("/special/<int:promo_id>", methods=["GET", "POST"])
 def special_prize(promo_id):
@@ -252,7 +241,6 @@ def special_prize(promo_id):
         return redirect(url_for("booking", user_id=user.id))
 
     return render_template("special_prize.html", promo=promo)
-
 
 @app.route("/booking/<int:user_id>", methods=["GET", "POST"])
 def booking(user_id):
@@ -295,7 +283,7 @@ def booking(user_id):
         db.session.commit()
 
         send_email(user.email, user.name, "booking")
-        send_email("gustinosspa@gmail.com", user.name, "owner_notification")
+        send_email(os.environ.get("GMAIL_USER"), user.name, "owner_notification")
 
         flash("Prenotazione effettuata con successo ✅")
         return redirect(url_for("booking", user_id=user.id))
@@ -322,9 +310,12 @@ def booking(user_id):
         reservations=reservations
     )
 
-
+# ------------------------
+# App Runner
+# ------------------------
 if __name__ == "__main__":
-    app.run(host="0.0.0.0",
-            port=int(os.environ.get("PORT", 5000)),
-            debug=True)
-    
+    app.run(
+        host="0.0.0.0",
+        port=int(os.environ.get("PORT", 5000)),
+        debug=True
+    )
