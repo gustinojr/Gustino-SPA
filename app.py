@@ -59,6 +59,8 @@ DEFAULT_FROM_NAME = os.environ.get("FROM_NAME", "Gustino's SPA")
 OWNER_NOTIFICATION_EMAIL = os.environ.get("OWNER_EMAIL", "gustinosspa@gmail.com")
 UNSUBSCRIBE_EMAIL = os.environ.get("UNSUBSCRIBE_EMAIL", "unsubscribe@gustinospa.it")
 
+print("SENDGRID_API_KEY:", os.environ.get("SENDGRID_API_KEY"))
+
 # ------------------------
 # Helper: send email via SendGrid (dynamic templates + fallback)
 # ------------------------
@@ -74,7 +76,7 @@ def send_email(to_email, dynamic_payload: dict, email_type="booking"):
         app.logger.error("SENDGRID_API_KEY not configured. Email NOT sent.")
         return False
 
-    sg = SendGridAPIClient(SENDGRID_API_KEY)
+    sg = SendGridAPIClient(os.environ.get("SENDGRID_API_KEY"))
 
     # Choose the template id
     if email_type == "booking":
