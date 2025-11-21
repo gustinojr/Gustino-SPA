@@ -1,16 +1,41 @@
+import os
+import logging
+from logging.handlers import RotatingFileHandler
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, timedelta
-import os
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail, To, Header
+
+# Optional Sentry integration
+SENTRY_DSN = os.environ.get("SENTRY_DSN")
+if SENTRY_DSN:
+    import sentry_sdk
+    sentry_sdk.init(dsn=SENTRY_DSN, traces_sample_rate=0.0)
 
 # ------------------------
 # Flask app setup
 # ------------------------
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "supersecretkey")
+
+# ------------------------
+# Logging (file + optional console)
+# ------------------------
+LOG_PATH = os.environ.get("LOG_PATH", "app.log")
+handler = RotatingFileHandler(LOG_PATH, maxBytes=5_000_000, backupCount=3, encoding='utf-8')
+formatter = logging.Formatter('%(asctime)s %(levelname)s %(name)s %(message)s')
+handler.setFormatter(formatter)
+handler.setLevel(logging.INFO)
+app.logger.setLevel(logging.INFO)
+app.logger.addHandler(handler)
+# also log to stdout for container logs
+console = logging.StreamHandler()
+console.setFormatter(formatter)
+console.setLevel(logging.INFO)
+app.logger.addHandler(console)
+
+app.logger.info("Starting Gustino's SPA app")
 
 # ------------------------
 # Database setup
@@ -23,96 +48,104 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 # ------------------------
-# Gmail SMTP Email Function
+# SendGrid settings
 # ------------------------
-def send_email(to_email, user_name, email_type="booking"):
+SENDGRID_API_KEY = os.environ.get("SENDGRID_API_KEY")
+TEMPLATE_BOOKING_ID = os.environ.get("TEMPLATE_BOOKING_ID")  # d-...
+TEMPLATE_PRIZE_ID = os.environ.get("TEMPLATE_PRIZE_ID")      # d-...
+TEMPLATE_OWNER_ID = os.environ.get("TEMPLATE_OWNER_ID")      # optional
+DEFAULT_FROM_EMAIL = os.environ.get("FROM_EMAIL", "info@gustinospa.it")
+DEFAULT_FROM_NAME = os.environ.get("FROM_NAME", "Gustino's SPA")
+OWNER_NOTIFICATION_EMAIL = os.environ.get("OWNER_EMAIL", "gustinosspa@gmail.com")
+UNSUBSCRIBE_EMAIL = os.environ.get("UNSUBSCRIBE_EMAIL", "unsubscribe@gustinospa.it")
+
+# ------------------------
+# Helper: send email via SendGrid (dynamic templates + fallback)
+# ------------------------
+def send_email(to_email, dynamic_payload: dict, email_type="booking"):
     """
-    Send email using Gmail SMTP.
-    Requires environment variables:
-    - GMAIL_USER
-    - GMAIL_PASS (App Password)
+    Send email using SendGrid Dynamic Templates.
+    dynamic_payload: dict with keys required by templates, e.g. {
+        "name": "...", "date": "...", "start_time":"...", "end_time":"...", "service":"...", "prize":"..."
+    }
+    email_type: one of "booking", "prize", "owner_notification", or "generic"
     """
+    if not SENDGRID_API_KEY:
+        app.logger.error("SENDGRID_API_KEY not configured. Email NOT sent.")
+        return False
 
-    gmail_user = os.environ.get("GMAIL_USER")
-    gmail_pass = os.environ.get("GMAIL_PASS")
+    sg = SendGridAPIClient(SENDGRID_API_KEY)
 
-    if not gmail_user or not gmail_pass:
-        print("❌ Missing Gmail SMTP credentials")
-        return
+    # Choose the template id
+    if email_type == "booking":
+        template_id = TEMPLATE_BOOKING_ID
+    elif email_type == "prize":
+        template_id = TEMPLATE_PRIZE_ID
+    elif email_type == "owner_notification":
+        template_id = TEMPLATE_OWNER_ID
+    else:
+        template_id = None
 
-    # ----------------------------------------------------------------------
-    # EMAIL CONTENTS BASED ON TYPE
-    # ----------------------------------------------------------------------
+    # Prepare fallback plain subject/content (used if template_id missing)
     if email_type == "booking":
         subject = "Conferma Prenotazione - Gustino's SPA"
-        text = f"""
-Ciao {user_name},
-
-La tua prenotazione presso Gustino's SPA è stata confermata.
-Ti aspettiamo per un momento di relax.
-
-A presto,
-Lo staff di Gustino's SPA
-"""
-        html = f"""
-<h3>Ciao {user_name},</h3>
-<p>La tua prenotazione presso <strong>Gustino's SPA</strong> è stata confermata.</p>
-<p>Ti aspettiamo per un momento di relax.</p>
-<p style="font-size:12px;color:#666;">Email generata automaticamente.</p>
-"""
-
+        fallback_html = f"""
+            <h3>Ciao {dynamic_payload.get('name','')},</h3>
+            <p>La tua prenotazione è confermata per il {dynamic_payload.get('date','')} ({dynamic_payload.get('service','')}).</p>
+        """
+        fallback_text = f"Ciao {dynamic_payload.get('name','')}, la tua prenotazione è confermata per il {dynamic_payload.get('date','')}."
     elif email_type == "prize":
         subject = "Informazioni sul tuo premio - Gustino's SPA"
-        text = f"""
-Ciao {user_name},
-
-Hai ottenuto un premio da Gustino's SPA.
-Ti contatteremo a breve con ulteriori dettagli.
-
-Lo staff di Gustino's SPA
-"""
-        html = f"""
-<h3>Ciao {user_name},</h3>
-<p>Hai ottenuto un premio speciale da <strong>Gustino's SPA</strong>.</p>
-<p>Ti ricontatteremo presto con ulteriori dettagli.</p>
-"""
-
+        fallback_html = f"""
+            <h3>Ciao {dynamic_payload.get('name','')},</h3>
+            <p>Hai vinto: <strong>{dynamic_payload.get('prize','Premio speciale')}</strong></p>
+        """
+        fallback_text = f"Ciao {dynamic_payload.get('name','')}, hai vinto: {dynamic_payload.get('prize','Premio speciale')}."
     elif email_type == "owner_notification":
-        subject = "Nuova Prenotazione Ricevuta - Gustino's SPA"
-        text = f"Nuova prenotazione effettuata da: {user_name}"
-        html = f"""
-<h3>Nuova prenotazione</h3>
-<p><strong>Cliente:</strong> {user_name}</p>
-"""
-
+        subject = "Nuova prenotazione ricevuta - Gustino's SPA"
+        fallback_html = f"""
+            <h3>Nuova prenotazione</h3>
+            <p>Cliente: {dynamic_payload.get('name','')}</p>
+            <p>Data: {dynamic_payload.get('date','')} - {dynamic_payload.get('start_time','')} / {dynamic_payload.get('end_time','')}</p>
+        """
+        fallback_text = f"Nuova prenotazione da {dynamic_payload.get('name','')} per il {dynamic_payload.get('date','')}."
     else:
         subject = "Notifica - Gustino's SPA"
-        text = f"Ciao {user_name},\nQuesta è una notifica automatica."
-        html = f"<p>Ciao {user_name}, questa è una notifica automatica.</p>"
+        fallback_html = "<p>Notifica</p>"
+        fallback_text = "Notifica"
 
-    # ----------------------------------------------------------------------
-    # SMTP MESSAGE BUILDING
-    # ----------------------------------------------------------------------
-    msg = MIMEMultipart("alternative")
-    msg["From"] = f"Gustino's SPA <{gmail_user}>"
-    msg["To"] = to_email
-    msg["Subject"] = subject
-
-    msg.attach(MIMEText(text, "plain"))
-    msg.attach(MIMEText(html, "html"))
-
-    # ----------------------------------------------------------------------
-    # SMTP SENDING
-    # ----------------------------------------------------------------------
     try:
-        server = smtplib.SMTP("smtp.gmail.com", 587)
-        server.starttls()
-        server.login(gmail_user, gmail_pass)
-        server.sendmail(gmail_user, to_email, msg.as_string())
-        server.quit()
-        print(f"✅ Email sent to {to_email}")
+        message = Mail(
+            from_email=f"{DEFAULT_FROM_NAME} <{DEFAULT_FROM_EMAIL}>",
+            to_emails=To(to_email),
+            subject=subject
+        )
+        # add list-unsubscribe header
+        message.add_header(Header("List-Unsubscribe", f"<mailto:{UNSUBSCRIBE_EMAIL}>"))
+        # reply-to same domain
+        message.reply_to = DEFAULT_FROM_EMAIL
+
+        if template_id:
+            # Attach dynamic data for the template
+            message.template_id = template_id
+            message.dynamic_template_data = dynamic_payload
+            app.logger.info("Sending template email", extra={"to": to_email, "template_id": template_id, "type": email_type})
+        else:
+            # Fallback: set html_content (SendGrid SDK supports .html_content attr)
+            message.html_content = fallback_html
+            # older sendgrid versions expect plain_text_content; set attribute if available
+            try:
+                message.plain_text_content = fallback_text
+            except Exception:
+                pass
+            app.logger.info("Sending fallback email (no template configured)", extra={"to": to_email, "type": email_type})
+
+        response = sg.send(message)
+        app.logger.info("Email sent", extra={"to": to_email, "status": getattr(response, "status_code", None)})
+        return True
     except Exception as e:
-        print(f"❌ Email failed: {e}")
+        app.logger.exception("Failed to send email", exc_info=e, extra={"to": to_email, "type": email_type})
+        return False
 
 # ------------------------
 # Database Models
@@ -126,6 +159,7 @@ class User(db.Model):
     reservations = db.relationship("Reservation", back_populates="user")
     promo_codes = db.relationship("PromoCode", back_populates="user")
 
+
 class Reservation(db.Model):
     __tablename__ = "reservations"
     id = db.Column(db.Integer, primary_key=True)
@@ -137,6 +171,7 @@ class Reservation(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
     user = db.relationship("User", back_populates="reservations")
 
+
 class PromoCode(db.Model):
     __tablename__ = "promo_codes"
     id = db.Column(db.Integer, primary_key=True)
@@ -144,6 +179,7 @@ class PromoCode(db.Model):
     redeemed = db.Column(db.Boolean, default=False)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
     user = db.relationship("User", back_populates="promo_codes")
+
 
 # ------------------------
 # Initialize DB & Promo Codes
@@ -156,9 +192,10 @@ with app.app_context():
         if not PromoCode.query.filter_by(code=code).first():
             db.session.add(PromoCode(code=code))
     db.session.commit()
+    app.logger.info("Database initialized and promo codes ensured.")
 
 # ------------------------
-# Routes
+# Routes (unchanged features, with added dynamic fields)
 # ------------------------
 @app.route("/reset-db")
 def reset_db():
@@ -167,11 +204,14 @@ def reset_db():
     for code in DEFAULT_PROMO_CODES:
         db.session.add(PromoCode(code=code))
     db.session.commit()
+    app.logger.info("Database reset requested")
     return "✅ Database reset and promo codes reloaded."
+
 
 @app.route("/")
 def home():
     return render_template("index.html")
+
 
 @app.route("/", methods=["POST"])
 def handle_code():
@@ -190,6 +230,7 @@ def handle_code():
     else:
         return redirect(url_for("register", promo_id=promo.id))
 
+
 @app.route("/register/<int:promo_id>", methods=["GET", "POST"])
 def register(promo_id):
     promo = PromoCode.query.get_or_404(promo_id)
@@ -202,18 +243,27 @@ def register(promo_id):
             flash("Nome ed email sono obbligatori.")
             return redirect(url_for("register", promo_id=promo.id))
 
-        user = User(name=name, email=email)
-        db.session.add(user)
-        db.session.commit()
+        # Avoid duplicate by email
+        existing = User.query.filter_by(email=email).first()
+        if existing:
+            user = existing
+            user.name = name  # update name if changed
+            db.session.commit()
+        else:
+            user = User(name=name, email=email)
+            db.session.add(user)
+            db.session.commit()
 
         promo.user_id = user.id
         promo.redeemed = True
         db.session.commit()
 
+        app.logger.info("User registered", extra={"user_id": user.id, "email": user.email})
         flash("Registrazione completata! Procedi con la prenotazione.")
         return redirect(url_for("booking", user_id=user.id))
 
     return render_template("register.html", promo=promo)
+
 
 @app.route("/special/<int:promo_id>", methods=["GET", "POST"])
 def special_prize(promo_id):
@@ -227,20 +277,37 @@ def special_prize(promo_id):
             flash("Nome ed email sono obbligatori.")
             return redirect(url_for("special_prize", promo_id=promo.id))
 
-        user = User(name=name, email=email)
-        db.session.add(user)
-        db.session.commit()
+        # create or reuse user
+        existing = User.query.filter_by(email=email).first()
+        if existing:
+            user = existing
+            user.name = name
+            db.session.commit()
+        else:
+            user = User(name=name, email=email)
+            db.session.add(user)
+            db.session.commit()
 
         promo.user_id = user.id
         promo.redeemed = True
         db.session.commit()
 
-        send_email(email, name, "prize")
+        # Decide prize text (you can customize per promo)
+        prize_text = "Premio Speciale VIP" if promo.code == "20121997" else "Premio Gustino's SPA"
 
+        # Send template email with prize info
+        payload = {
+            "name": user.name,
+            "prize": prize_text
+        }
+        sent = send_email(user.email, payload, email_type="prize")
+
+        app.logger.info("Special prize registered", extra={"user_id": user.id, "email": user.email, "sent": sent})
         flash("Premio speciale registrato! Controlla la tua email 📩")
         return redirect(url_for("booking", user_id=user.id))
 
     return render_template("special_prize.html", promo=promo)
+
 
 @app.route("/booking/<int:user_id>", methods=["GET", "POST"])
 def booking(user_id):
@@ -252,9 +319,11 @@ def booking(user_id):
     end_date = datetime.strptime("2026-01-06", "%Y-%m-%d").date()
 
     if request.method == "POST":
+        # read optional 'service' field from form; default to generic
         date_str = request.form.get("date")
         start_str = request.form.get("start_time")
         end_str = request.form.get("end_time")
+        service = request.form.get("service", "Servizio Gustino's SPA")
 
         date = datetime.strptime(date_str, "%Y-%m-%d").date()
         start_time = datetime.strptime(start_str, "%H:%M").time()
@@ -277,14 +346,25 @@ def booking(user_id):
             user_id=user.id,
             date=date,
             start_time=start_time,
-            end_time=end_time
+            end_time=end_time,
+            details=service
         )
         db.session.add(reservation)
         db.session.commit()
 
-        send_email(user.email, user.name, "booking")
-        send_email(os.environ.get("GMAIL_USER"), user.name, "owner_notification")
+        # Prepare dynamic payload for template
+        payload = {
+            "name": user.name,
+            "date": date.strftime("%Y-%m-%d"),
+            "start_time": start_time.strftime("%H:%M"),
+            "end_time": end_time.strftime("%H:%M"),
+            "service": service
+        }
 
+        sent_user = send_email(user.email, payload, email_type="booking")
+        sent_owner = send_email(OWNER_NOTIFICATION_EMAIL, payload, email_type="owner_notification")
+
+        app.logger.info("Reservation created", extra={"user_id": user.id, "reservation_id": reservation.id, "sent_user": sent_user, "sent_owner": sent_owner})
         flash("Prenotazione effettuata con successo ✅")
         return redirect(url_for("booking", user_id=user.id))
 
@@ -310,12 +390,8 @@ def booking(user_id):
         reservations=reservations
     )
 
-# ------------------------
-# App Runner
-# ------------------------
+
 if __name__ == "__main__":
-    app.run(
-        host="0.0.0.0",
-        port=int(os.environ.get("PORT", 5000)),
-        debug=True
-    )
+    app.run(host="0.0.0.0",
+            port=int(os.environ.get("PORT", 5000)),
+            debug=bool(os.environ.get("DEBUG", True)))
