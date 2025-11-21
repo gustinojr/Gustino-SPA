@@ -36,6 +36,18 @@ console.setLevel(logging.INFO)
 app.logger.addHandler(console)
 
 app.logger.info("Starting Gustino's SPA app")
+app.logger.debug("DEBUG MODE ACTIVE")
+app.logger.debug("Loaded environment:", extra={
+    "SENDGRID_KEY": bool(SENDGRID_API_KEY),
+    "TEMPLATE_BOOKING_ID": TEMPLATE_BOOKING_ID,
+    "TEMPLATE_PRIZE_ID": TEMPLATE_PRIZE_ID,
+    "TEMPLATE_OWNER_ID": TEMPLATE_OWNER_ID,
+    "FROM_EMAIL": DEFAULT_FROM_EMAIL,
+    "OWNER_EMAIL": OWNER_NOTIFICATION_EMAIL
+})
+app.logger.setLevel(logging.DEBUG)
+handler.setLevel(logging.DEBUG)
+console.setLevel(logging.DEBUG)
 
 # ------------------------
 # Database setup
@@ -66,19 +78,27 @@ print("SENDGRID_API_KEY:", os.environ.get("SENDGRID_API_KEY"))
 # ------------------------
 def send_email(to_email, dynamic_payload: dict, email_type="booking"):
     """
-    Send email using SendGrid Dynamic Templates.
-    dynamic_payload: dict with keys required by templates, e.g. {
-        "name": "...", "date": "...", "start_time":"...", "end_time":"...", "service":"...", "prize":"..."
-    }
-    email_type: one of "booking", "prize", "owner_notification", or "generic"
+    Send email using SendGrid Dynamic Templates, with extended debug logging.
     """
+
+    app.logger.debug("send_email() called", extra={
+        "to": to_email,
+        "email_type": email_type,
+        "payload": dynamic_payload
+    })
+
+    print("📨 EMAIL DEBUG:",
+          "to:", to_email,
+          "type:", email_type,
+          "payload:", json.dumps(dynamic_payload, ensure_ascii=False))
+    
     if not SENDGRID_API_KEY:
         app.logger.error("SENDGRID_API_KEY not configured. Email NOT sent.")
         return False
 
-    sg = SendGridAPIClient(os.environ.get("SENDGRID_API_KEY"))
+    sg = SendGridAPIClient(SENDGRID_API_KEY)
 
-    # Choose the template id
+    # Choose the right template
     if email_type == "booking":
         template_id = TEMPLATE_BOOKING_ID
     elif email_type == "prize":
@@ -88,33 +108,37 @@ def send_email(to_email, dynamic_payload: dict, email_type="booking"):
     else:
         template_id = None
 
-    # Prepare fallback plain subject/content (used if template_id missing)
+    app.logger.debug("Resolved template ID", extra={
+        "email_type": email_type,
+        "template_id": template_id
+    })
+
+    # Build fallback subject & content
     if email_type == "booking":
         subject = "Conferma Prenotazione - Gustino's SPA"
         fallback_html = f"""
             <h3>Ciao {dynamic_payload.get('name','')},</h3>
-            <p>La tua prenotazione è confermata per il {dynamic_payload.get('date','')} ({dynamic_payload.get('service','')}).</p>
+            <p>Prenotazione confermata per il {dynamic_payload.get('date','')}.</p>
         """
-        fallback_text = f"Ciao {dynamic_payload.get('name','')}, la tua prenotazione è confermata per il {dynamic_payload.get('date','')}."
+        fallback_text = f"Ciao {dynamic_payload.get('name','')}, prenotazione confermata."
     elif email_type == "prize":
         subject = "Informazioni sul tuo premio - Gustino's SPA"
         fallback_html = f"""
             <h3>Ciao {dynamic_payload.get('name','')},</h3>
-            <p>Hai vinto: <strong>{dynamic_payload.get('prize','Premio speciale')}</strong></p>
+            <p>Hai vinto: {dynamic_payload.get('prize','Premio speciale')}</p>
         """
-        fallback_text = f"Ciao {dynamic_payload.get('name','')}, hai vinto: {dynamic_payload.get('prize','Premio speciale')}."
+        fallback_text = f"Ciao {dynamic_payload.get('name','')}, hai vinto un premio."
     elif email_type == "owner_notification":
-        subject = "Nuova prenotazione ricevuta - Gustino's SPA"
+        subject = "Nuova prenotazione - Gustino's SPA"
         fallback_html = f"""
             <h3>Nuova prenotazione</h3>
             <p>Cliente: {dynamic_payload.get('name','')}</p>
-            <p>Data: {dynamic_payload.get('date','')} - {dynamic_payload.get('start_time','')} / {dynamic_payload.get('end_time','')}</p>
         """
-        fallback_text = f"Nuova prenotazione da {dynamic_payload.get('name','')} per il {dynamic_payload.get('date','')}."
+        fallback_text = "Nuova prenotazione"
     else:
         subject = "Notifica - Gustino's SPA"
-        fallback_html = "<p>Notifica</p>"
-        fallback_text = "Notifica"
+        fallback_html = "<p>Notifica generica</p>"
+        fallback_text = "Notifica generica"
 
     try:
         message = Mail(
@@ -122,31 +146,51 @@ def send_email(to_email, dynamic_payload: dict, email_type="booking"):
             to_emails=To(to_email),
             subject=subject
         )
-        # add list-unsubscribe header
+
+        # Debug info inside headers
+        message.add_header(Header("X-Debug-Email-Type", email_type))
+        message.add_header(Header("X-Debug-To", to_email))
         message.add_header(Header("List-Unsubscribe", f"<mailto:{UNSUBSCRIBE_EMAIL}>"))
-        # reply-to same domain
+
         message.reply_to = DEFAULT_FROM_EMAIL
 
         if template_id:
-            # Attach dynamic data for the template
             message.template_id = template_id
             message.dynamic_template_data = dynamic_payload
-            app.logger.info("Sending template email", extra={"to": to_email, "template_id": template_id, "type": email_type})
+
+            app.logger.debug("Sending SendGrid dynamic-template email", extra={
+                "to": to_email,
+                "template_id": template_id,
+                "payload": dynamic_payload
+            })
         else:
-            # Fallback: set html_content (SendGrid SDK supports .html_content attr)
             message.html_content = fallback_html
-            # older sendgrid versions expect plain_text_content; set attribute if available
             try:
                 message.plain_text_content = fallback_text
-            except Exception:
+            except:
                 pass
-            app.logger.info("Sending fallback email (no template configured)", extra={"to": to_email, "type": email_type})
+
+            app.logger.warning("No template configured, using fallback email", extra={
+                "email_type": email_type,
+                "to": to_email
+            })
 
         response = sg.send(message)
-        app.logger.info("Email sent", extra={"to": to_email, "status": getattr(response, "status_code", None)})
+
+        app.logger.info("Email sent successfully", extra={
+            "to": to_email,
+            "status": getattr(response, "status_code", None),
+            "template_id": template_id
+        })
+
         return True
+
     except Exception as e:
-        app.logger.exception("Failed to send email", exc_info=e, extra={"to": to_email, "type": email_type})
+        app.logger.exception("Failed to send email", extra={
+            "to": to_email,
+            "email_type": email_type,
+            "payload": dynamic_payload
+        })
         return False
 
 # ------------------------
