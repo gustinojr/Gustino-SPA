@@ -37,14 +37,6 @@ app.logger.addHandler(console)
 
 app.logger.info("Starting Gustino's SPA app")
 app.logger.debug("DEBUG MODE ACTIVE")
-app.logger.debug("Loaded environment:", extra={
-    "SENDGRID_KEY": bool(SENDGRID_API_KEY),
-    "TEMPLATE_BOOKING_ID": TEMPLATE_BOOKING_ID,
-    "TEMPLATE_PRIZE_ID": TEMPLATE_PRIZE_ID,
-    "TEMPLATE_OWNER_ID": TEMPLATE_OWNER_ID,
-    "FROM_EMAIL": DEFAULT_FROM_EMAIL,
-    "OWNER_EMAIL": OWNER_NOTIFICATION_EMAIL
-})
 app.logger.setLevel(logging.DEBUG)
 handler.setLevel(logging.DEBUG)
 console.setLevel(logging.DEBUG)
@@ -73,6 +65,14 @@ UNSUBSCRIBE_EMAIL = os.environ.get("UNSUBSCRIBE_EMAIL", "unsubscribe@gustinospa.
 
 print("SENDGRID_API_KEY:", os.environ.get("SENDGRID_API_KEY"))
 
+app.logger.debug("Loaded environment:", extra={
+    "SENDGRID_KEY": bool(SENDGRID_API_KEY),
+    "TEMPLATE_BOOKING_ID": TEMPLATE_BOOKING_ID,
+    "TEMPLATE_PRIZE_ID": TEMPLATE_PRIZE_ID,
+    "TEMPLATE_OWNER_ID": TEMPLATE_OWNER_ID,
+    "FROM_EMAIL": DEFAULT_FROM_EMAIL,
+    "OWNER_EMAIL": OWNER_NOTIFICATION_EMAIL
+})
 # ------------------------
 # Helper: send email via SendGrid (dynamic templates + fallback)
 # ------------------------
