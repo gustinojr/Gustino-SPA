@@ -130,12 +130,12 @@ def send_email(to_email, dynamic_payload: dict, email_type="booking"):
         """
         fallback_text = f"Ciao {dynamic_payload.get('name','')}, hai vinto un premio."
     elif email_type == "owner_notification":
-        subject = "Nuova prenotazione - Gustino's SPA"
+        subject = "Conferma Prenotazione - Gustino's SPA"
         fallback_html = f"""
-            <h3>Nuova prenotazione</h3>
-            <p>Cliente: {dynamic_payload.get('name','')}</p>
+            <h3>Ciao {dynamic_payload.get('name','')},</h3>
+            <p>Prenotazione confermata per il {dynamic_payload.get('date','')}.</p>
         """
-        fallback_text = "Nuova prenotazione"
+        fallback_text = f"Ciao {dynamic_payload.get('name','')}, prenotazione confermata."
     else:
         subject = "Notifica - Gustino's SPA"
         fallback_html = "<p>Notifica generica</p>"
