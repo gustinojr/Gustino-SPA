@@ -122,6 +122,16 @@ with app.app_context():
 # ------------------------
 # Routes
 # ------------------------
+@app.route("/reset-db")
+def reset_db():
+    db.drop_all()
+    db.create_all()
+    for code in DEFAULT_PROMO_CODES:
+        db.session.add(PromoCode(code=code))
+    db.session.commit()
+    app.logger.info("Database reset requested")
+    return "✅ Database reset and promo codes reloaded."
+
 @app.route("/", methods=["GET", "POST"])
 def home():
     chat_id = session.get("chat_id")
