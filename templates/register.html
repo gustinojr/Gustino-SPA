@@ -18,20 +18,21 @@
       {% endif %}
     {% endwith %}
 
+
+<form method="POST">
+  {% if chat_id %}
     <h2>Registrazione Promo 🎁</h2>
     <h3>Inserisci i tuoi dati per registrarti:</h3>
-
-    <form method="POST">
-      <input type="text" name="name" placeholder="Nome" required>
-      <input type="email" name="email" placeholder="Email" required>
-      <button type="submit">Registrati</button>
-    </form>
-
-    <hr>
+    <input type="text" name="name" placeholder="Nome" required>
+    <button type="submit">Registrati</button>
+  {% else %}
     <h4>Non hai ancora avviato il nostro Bot Telegram?</h4>
     <p>Clicca qui sotto per aprire il bot. Segui le istruzioni per collegare il tuo account e ricevere notifiche sulle prenotazioni:</p>
-    <a href="https://t.me/YourBotUsername" target="_blank">
-      <button style="padding:10px 20px; font-size:16px;">Avvia Bot Telegram</button>
+    <a href="https://t.me/GustinoSpa_bot" class="bot-button">Avvia Bot Telegram</a>
+    <p>Avvia il bot Telegram per continuare</p>
+  {% endif %}
+</form>
+
     </a>
   </div>
 </body>
