@@ -35,6 +35,28 @@ app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:/
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = SQLAlchemy(app)
 
+# --- FIRST LAUNCH RESET ---
+RESET_MARKER = "init.lock"
+
+with app.app_context():
+    if not os.path.exists(RESET_MARKER):
+        print("### FIRST EXECUTION: resetting database ###")
+
+        # DROP ALL TABLES
+        db.drop_all()
+        print("All tables dropped.")
+
+        # RECREATE ALL TABLES
+        db.create_all()
+        print("All tables created.")
+
+        # CREATE MARKER FILE
+        with open(RESET_MARKER, "w") as f:
+            f.write("initialized")
+
+        print("Initialization complete. Database will NOT be reset again.")
+    else:
+        print("Database already initialized. No reset needed.")
 # =====================================================================
 # TELEGRAM CONFIG
 # =====================================================================
