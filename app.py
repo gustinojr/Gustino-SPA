@@ -35,28 +35,6 @@ app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:/
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = SQLAlchemy(app)
 
-# --- FIRST LAUNCH RESET ---
-RESET_MARKER = "init.lock"
-
-with app.app_context():
-    if not os.path.exists(RESET_MARKER):
-        print("### FIRST EXECUTION: resetting database ###")
-
-        # DROP ALL TABLES
-        db.drop_all()
-        print("All tables dropped.")
-
-        # RECREATE ALL TABLES
-        db.create_all()
-        print("All tables created.")
-
-        # CREATE MARKER FILE
-        with open(RESET_MARKER, "w") as f:
-            f.write("initialized")
-
-        print("Initialization complete. Database will NOT be reset again.")
-    else:
-        print("Database already initialized. No reset needed.")
 # =====================================================================
 # TELEGRAM CONFIG
 # =====================================================================
@@ -114,14 +92,33 @@ class PromoCode(db.Model):
 # =====================================================================
 # INIT DEFAULT PROMOS
 # =====================================================================
+# ------------------------
+# Initialize DB & Promo Codes
+# ------------------------
 DEFAULT_PROMO_CODES = ["GUSTINO2025", "20121997", "VIP2025"]
 
 with app.app_context():
-    db.create_all()
+    # 1. Drop old tables only if schema mismatch
+    try:
+        # Test simple SELECT to detect schema issues
+        db.session.execute(db.text("SELECT id, code FROM promo_codes LIMIT 1"))
+        app.logger.info("DB schema OK — no reset needed.")
+    except Exception as e:
+        app.logger.error(f"Schema error detected: {e}")
+        app.logger.warning("Resetting database due to schema mismatch...")
+
+        db.drop_all()
+        db.create_all()
+
+        app.logger.info("Database has been reset and recreated.")
+
+    # 2. Ensure promo codes exist
     for code in DEFAULT_PROMO_CODES:
         if not PromoCode.query.filter_by(code=code).first():
             db.session.add(PromoCode(code=code))
+
     db.session.commit()
+    app.logger.info("Promo codes ensured.")
 
 
 # =====================================================================
