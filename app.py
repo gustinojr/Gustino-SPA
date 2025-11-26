@@ -1,26 +1,26 @@
 import os
 import logging
 from logging.handlers import RotatingFileHandler
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import requests
 
-# ------------------------
-# Config Flask
-# ------------------------
+# =====================================================================
+# FLASK CONFIG
+# =====================================================================
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "supersecretkey")
-app.config['SESSION_TYPE'] = 'filesystem'
 
-# ------------------------
-# Logging
-# ------------------------
+# =====================================================================
+# LOGGING
+# =====================================================================
 LOG_PATH = os.environ.get("LOG_PATH", "app.log")
-handler = RotatingFileHandler(LOG_PATH, maxBytes=5_000_000, backupCount=3, encoding='utf-8')
-formatter = logging.Formatter('%(asctime)s %(levelname)s %(name)s %(message)s')
+handler = RotatingFileHandler(LOG_PATH, maxBytes=5_000_000, backupCount=3, encoding="utf-8")
+formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
 handler.setFormatter(formatter)
 handler.setLevel(logging.INFO)
+
 app.logger.setLevel(logging.INFO)
 app.logger.addHandler(handler)
 console = logging.StreamHandler()
@@ -28,90 +28,72 @@ console.setFormatter(formatter)
 console.setLevel(logging.INFO)
 app.logger.addHandler(console)
 
-# ------------------------
-# DB setup
-# ------------------------
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
-    "DATABASE_URL",
-    "sqlite:///gustino.db"
-)
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+# =====================================================================
+# DB CONFIG
+# =====================================================================
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///gustino.db")
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = SQLAlchemy(app)
 
-# ------------------------
-# Telegram Bot
-# ------------------------
+# =====================================================================
+# TELEGRAM CONFIG
+# =====================================================================
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
-OWNER_CHAT_ID = os.environ.get("OWNER_CHAT_ID")  # Telegram chat_id del proprietario
+OWNER_CHAT_ID = os.environ.get("OWNER_CHAT_ID")  # your chat_id
+BOT_USERNAME = os.environ.get("TELEGRAM_BOT_USERNAME", "gustinospa_bot")
 
-def send_telegram_message(chat_id, tipo, nome, data=None, ora_inizio=None, ora_fine=None):
-    if tipo == "prenotazione":
-        text = f"""Ciao {nome},
+TG_SEND_URL = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
 
-Grazie per aver prenotato presso Gustino SPA!
-La tua prenotazione è confermata per il {data} dalle {ora_inizio} alle {ora_fine}.
 
-Per qualsiasi domanda, visita https://gustinospa.dpdns.org.
+# =====================================================================
+# TELEGRAM — SEND MESSAGE
+# =====================================================================
+def tg_send(chat_id, text):
+    if not chat_id:
+        app.logger.warning("⚠ Cannot send message: chat_id is None")
+        return
 
-Un saluto,
-Il team di Gustino SPA"""
-    elif tipo == "premio":
-        text = f"""Ciao {nome},
-
-Congratulazioni! Hai ricevuto il tuo premio speciale presso Gustino SPA 🎁
-Goditi una cena personalizzata cucinata da Gustino in persona!
-Valido dal 20/12/2025 al 06/01/2026.
-
-Per maggiori informazioni visita https://gustinospa.dpdns.org.
-
-Un saluto,
-Il team di Gustino SPA"""
-    else:
-        text = "Messaggio generico"
-
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
     payload = {"chat_id": chat_id, "text": text}
     try:
-        requests.post(url, data=payload)
-        app.logger.info(f"Telegram message sent to {chat_id} ({tipo})")
+        requests.post(TG_SEND_URL, data=payload)
+        app.logger.info(f"Telegram message sent to {chat_id}")
     except Exception as e:
-        app.logger.error(f"Failed to send telegram message: {e}")
+        app.logger.error(f"Telegram send ERROR: {e}")
 
-# ------------------------
-# DB Models
-# ------------------------
+
+# =====================================================================
+# DATABASE MODELS
+# =====================================================================
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100))
-    chat_id = db.Column(db.String(50), unique=True, nullable=True)
+    name = db.Column(db.String(120))
+    promo_code = db.Column(db.String(50))
+    chat_id = db.Column(db.String(50), nullable=True)
     reservations = db.relationship("Reservation", back_populates="user")
-    promo_codes = db.relationship("PromoCode", back_populates="user")
+
 
 class Reservation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.Date)
     start_time = db.Column(db.Time)
     end_time = db.Column(db.Time)
-    details = db.Column(db.String(255))
+    service = db.Column(db.String(200))
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
     user = db.relationship("User", back_populates="reservations")
+
 
 class PromoCode(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     code = db.Column(db.String(50), unique=True)
     redeemed = db.Column(db.Boolean, default=False)
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
-    user = db.relationship("User", back_populates="promo_codes")
+    assigned_user_id = db.Column(db.Integer, nullable=True)
 
-class TelegramUser(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    chat_id = db.Column(db.String(50), unique=True)
-    code = db.Column(db.String(50))  # codice promo temporaneo
 
-# ------------------------
-# DB Init
-# ------------------------
+# =====================================================================
+# INIT DEFAULT PROMOS
+# =====================================================================
 DEFAULT_PROMO_CODES = ["GUSTINO2025", "20121997", "VIP2025"]
+
 with app.app_context():
     db.create_all()
     for code in DEFAULT_PROMO_CODES:
@@ -119,9 +101,59 @@ with app.app_context():
             db.session.add(PromoCode(code=code))
     db.session.commit()
 
-# ------------------------
-# Routes
-# ------------------------
+
+# =====================================================================
+# TELEGRAM WEBHOOK ENDPOINT
+# =====================================================================
+@app.post("/telegramWebhook")
+def telegram_webhook():
+    data = request.json
+
+    if "message" not in data:
+        return jsonify({"status": "ignored"})
+
+    msg = data["message"]
+    chat_id = msg["chat"]["id"]
+    text = msg.get("text", "")
+
+    # user sends: /start GUSTINO2025
+    if text.startswith("/start"):
+        try:
+            promo = text.replace("/start", "").strip()
+            if not promo:
+                tg_send(chat_id, "Per favore invia un codice valido.")
+                return "ok"
+
+            promo_row = PromoCode.query.filter_by(code=promo).first()
+            if not promo_row:
+                tg_send(chat_id, "❌ Codice inesistente.")
+                return "ok"
+
+            # Assign chat_id to user
+            user = User.query.filter_by(promo_code=promo).first()
+            if user:
+                user.chat_id = chat_id
+            else:
+                user = User(name="Utente", promo_code=promo, chat_id=chat_id)
+                db.session.add(user)
+
+            promo_row.redeemed = True
+            promo_row.assigned_user_id = user.id
+            db.session.commit()
+
+            tg_send(chat_id, "🎉 Benvenuto! Il tuo account è stato collegato con successo.\nOra puoi tornare sul sito e completare la prenotazione!")
+
+            return "ok"
+        except Exception as e:
+            app.logger.error(f"Webhook error: {e}")
+            return "error", 500
+
+    return "ignored"
+
+
+# =====================================================================
+# ROUTE: HOME
+# =====================================================================
 @app.route("/reset-db")
 def reset_db():
     db.drop_all()
@@ -132,117 +164,109 @@ def reset_db():
     app.logger.info("Database reset requested")
     return "✅ Database reset and promo codes reloaded."
 
+
 @app.route("/", methods=["GET", "POST"])
 def home():
-    chat_id = session.get("chat_id")
-    if request.method == "POST" and chat_id:
+    if request.method == "POST":
         code = request.form.get("code", "").strip()
         promo = PromoCode.query.filter_by(code=code).first()
+
         if not promo:
-            flash("Codice non valido")
+            flash("❌ Codice non valido.")
             return redirect(url_for("home"))
-        if promo.redeemed and promo.user:
-            return redirect(url_for("booking", user_id=promo.user.id))
-        if promo.code == "20121997":  # special prize
-            return redirect(url_for("special_prize", promo_id=promo.id))
-        return redirect(url_for("register", promo_id=promo.id))
-    return render_template("index.html", chat_id=chat_id)
 
-@app.route("/register/<int:promo_id>", methods=["GET", "POST"])
-def register(promo_id):
-    chat_id = session.get("chat_id")
-    promo = PromoCode.query.get_or_404(promo_id)
-    if request.method == "POST" and chat_id:
+        # If promo already redeemed → go to user page
+        if promo.redeemed and promo.assigned_user_id:
+            return redirect(url_for("register", promo=promo.code))
+
+        return redirect(url_for("register", promo=promo.code))
+
+    return render_template("index.html", bot_username=BOT_USERNAME)
+
+
+# =====================================================================
+# ROUTE: REGISTRAZIONE
+# =====================================================================
+@app.route("/register/<promo>", methods=["GET", "POST"])
+def register(promo):
+    promo_row = PromoCode.query.filter_by(code=promo).first_or_404()
+
+    user = None
+    if promo_row.assigned_user_id:
+        user = User.query.get(promo_row.assigned_user_id)
+
+    # user exists but no name saved → let them add their name
+    if request.method == "POST":
         name = request.form.get("name")
-        user = User(name=name, chat_id=chat_id)
-        db.session.add(user)
-        db.session.commit()
-        promo.user_id = user.id
-        promo.redeemed = True
-        db.session.commit()
-        flash("Registrazione completata! Procedi con la prenotazione.")
-        return redirect(url_for("booking", user_id=user.id))
-    return render_template("registration.html", promo=promo, chat_id=chat_id)
+        if user:
+            user.name = name
+        else:
+            user = User(name=name, promo_code=promo)
+            db.session.add(user)
+            promo_row.assigned_user_id = user.id
 
-@app.route("/special/<int:promo_id>", methods=["GET", "POST"])
-def special_prize(promo_id):
-    chat_id = session.get("chat_id")
-    promo = PromoCode.query.get_or_404(promo_id)
-    if request.method == "POST" and chat_id:
-        name = request.form.get("name")
-        user = User(name=name, chat_id=chat_id)
-        db.session.add(user)
+        promo_row.redeemed = True
         db.session.commit()
-        promo.user_id = user.id
-        promo.redeemed = True
-        db.session.commit()
-        send_telegram_message(chat_id, "premio", nome=name)
-        flash("Premio speciale registrato! Controlla il tuo Telegram 📩")
-        return redirect(url_for("booking", user_id=user.id))
-    return render_template("special_prize.html", promo=promo, chat_id=chat_id)
 
+        return redirect(url_for("booking", user_id=user.id))
+
+    return render_template("registration.html",
+                           promo=promo,
+                           user=user,
+                           bot_username=BOT_USERNAME)
+
+
+# =====================================================================
+# ROUTE: BOOKING
+# =====================================================================
 @app.route("/booking/<int:user_id>", methods=["GET", "POST"])
 def booking(user_id):
     user = User.query.get_or_404(user_id)
-    start_date = datetime.strptime("2025-12-20", "%Y-%m-%d").date()
-    end_date = datetime.strptime("2026-01-06", "%Y-%m-%d").date()
-    slot_start = datetime.strptime("11:00", "%H:%M").time()
-    slot_end = datetime.strptime("23:59", "%H:%M").time()
 
     if request.method == "POST":
         date = datetime.strptime(request.form.get("date"), "%Y-%m-%d").date()
         start_time = datetime.strptime(request.form.get("start_time"), "%H:%M").time()
         end_time = datetime.strptime(request.form.get("end_time"), "%H:%M").time()
-        service = request.form.get("service", "Servizio Gustino's SPA")
+        service = request.form.get("service")
 
         reservation = Reservation(
-            user_id=user.id, date=date, start_time=start_time, end_time=end_time, details=service
+            user_id=user.id,
+            date=date,
+            start_time=start_time,
+            end_time=end_time,
+            service=service
         )
         db.session.add(reservation)
         db.session.commit()
 
-        # invia messaggi Telegram a user e owner
-        if user.chat_id:
-            send_telegram_message(user.chat_id, "prenotazione", user.name,
-                                  data=date.strftime("%d/%m/%Y"),
-                                  ora_inizio=start_time.strftime("%H:%M"),
-                                  ora_fine=end_time.strftime("%H:%M"))
-        if OWNER_CHAT_ID:
-            send_telegram_message(OWNER_CHAT_ID, "prenotazione", user.name,
-                                  data=date.strftime("%d/%m/%Y"),
-                                  ora_inizio=start_time.strftime("%H:%M"),
-                                  ora_fine=end_time.strftime("%H:%M"))
+        # === SEND USER MESSAGE ===
+        tg_send(
+            user.chat_id,
+            f"""Ciao {user.name},
 
-        flash("Prenotazione effettuata con successo ✅")
+Grazie per aver prenotato presso Gustino SPA!
+La tua prenotazione è confermata per il {date.strftime('%d/%m/%Y')}
+dalle {start_time.strftime('%H:%M')} alle {end_time.strftime('%H:%M')}.
+
+A presto!"""
+        )
+
+        # === SEND OWNER MESSAGE ===
+        if OWNER_CHAT_ID:
+            tg_send(
+                OWNER_CHAT_ID,
+                f"📢 Nuova prenotazione!\nUtente: {user.name}\nData: {date}\nOrario: {start_time}-{end_time}"
+            )
+
+        flash("Prenotazione completata! Controlla Telegram 📩")
         return redirect(url_for("booking", user_id=user.id))
 
-    return render_template("booking.html", user=user, start_date=start_date,
-                           end_date=end_date, slot_start=slot_start, slot_end=slot_end)
+    return render_template("booking.html", user=user)
 
-# ------------------------
-# Bot integration
-# ------------------------
-@app.route("/bot/<code>")
-def bot_start(code):
-    # mostra pulsante per aprire Telegram
-    return render_template("bot_start.html", code=code, bot_token=BOT_TOKEN)
 
-@app.route("/telegram_webhook", methods=["POST"])
-def telegram_webhook():
-    data = request.json
-    if "message" in data:
-        chat_id = str(data["message"]["chat"]["id"])
-        text = data["message"].get("text", "")
-        if text.startswith("/start"):
-            code = text.split()[-1] if len(text.split()) > 1 else None
-            session["chat_id"] = chat_id
-            t_user = TelegramUser.query.filter_by(code=code).first()
-            if not t_user and code:
-                t_user = TelegramUser(chat_id=chat_id, code=code)
-                db.session.add(t_user)
-                db.session.commit()
-            send_telegram_message(chat_id, "info", "Utente")
-    return {"ok": True}
-
+# =====================================================================
+# RUN
+# =====================================================================
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
