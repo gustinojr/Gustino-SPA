@@ -63,6 +63,45 @@ def tg_send(chat_id, text):
     except Exception as e:
         app.logger.error(f"Telegram send ERROR: {e}")
         return False
+TG_GET_UPDATES_URL = f"https://api.telegram.org/bot{BOT_TOKEN}/getUpdates" if BOT_TOKEN else None
+
+def tg_poll_for_chat_id(promo_code):
+    """
+    Poll Telegram getUpdates looking for a /start <promo> message.
+    Returns chat_id if found, else None.
+    """
+    if not TG_GET_UPDATES_URL:
+        app.logger.error("Polling skipped: BOT_TOKEN missing.")
+        return None
+
+    try:
+        r = requests.get(TG_GET_UPDATES_URL, timeout=10)
+        data = r.json()
+
+        if "result" not in data:
+            return None
+
+        for update in data["result"]:
+            msg = update.get("message")
+            if not msg:
+                continue
+
+            chat_id = str(msg["chat"]["id"])
+            text = msg.get("text", "")
+
+            # match: /start GUSTINO2025
+            if text.startswith("/start"):
+                received_promo = text.replace("/start", "").strip()
+
+                if received_promo == promo_code:
+                    app.logger.info(f"Polling: found chat_id {chat_id} for promo {promo_code}")
+                    return chat_id
+
+        return None
+
+    except Exception as e:
+        app.logger.error(f"Telegram polling ERROR: {e}")
+        return None
 
 # =====================================================================
 # DATABASE MODELS (explicit __tablename__ to avoid mismatch)
@@ -261,6 +300,18 @@ def register(promo):
         promo_row.redeemed = True
         db.session.commit()
         return redirect(url_for("booking", user_id=user.id))
+# AUTO-POLLING TO RETRIEVE CHAT_ID IF MISSING
+if user and not user.chat_id:
+    app.logger.warning(f"⚠ User {user.id} has no chat_id — polling Telegram...")
+
+    polled_chat = tg_poll_for_chat_id(user.promo_code)
+
+    if polled_chat:
+        user.chat_id = polled_chat
+        db.session.commit()
+        flash("✅ Account Telegram collegato correttamente!")
+    else:
+        flash("⚠ Per completare la registrazione, apri il bot Telegram e premi START.")
 
     # On GET: show registration page. Template should check if user and user.chat_id exist to hide/show bot button.
     return render_template("registration.html", promo=promo, user=user, bot_username=BOT_USERNAME)
@@ -269,6 +320,18 @@ def register(promo):
 @app.route("/booking/<int:user_id>", methods=["GET", "POST"])
 def booking(user_id):
     user = User.query.get_or_404(user_id)
+# ensure chat_id exists
+if not user.chat_id:
+    app.logger.warning(f"⚠ User {user.id} entered booking but has NO chat_id")
+
+    polled = tg_poll_for_chat_id(user.promo_code)
+    if polled:
+        user.chat_id = polled
+        db.session.commit()
+        flash("✅ Collegamento Telegram recuperato automaticamente!")
+    else:
+        flash("⚠ Devi prima collegare il tuo account tramite Telegram.")
+        return redirect(url_for("register", promo=user.promo_code))
 
     if request.method == "POST":
         date = datetime.strptime(request.form.get("date"), "%Y-%m-%d").date()
