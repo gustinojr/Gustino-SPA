@@ -1,5 +1,7 @@
 from flask import Blueprint, render_template, session, jsonify
 from app.models import User  # supponendo che tu abbia un modello User con chat_id
+from datetime import datetime
+
 bot_bp = Blueprint('bot_bp', __name__)
 
 @bot_bp.route('/bot')
