@@ -1,0 +1,16 @@
+<h2>Apri il bot Telegram</h2>
+<p>Clicca sul bottone per aprire il bot. Tornerai automaticamente alla registrazione appena il bot rileva il tuo chat_id.</p>
+<a href="https://t.me/YOUR_BOT_USERNAME" target="_blank">Apri Bot</a>
+
+<script>
+const pollChatId = async () => {
+    const response = await fetch('/check_chatid');
+    const data = await response.json();
+    if(data.chat_id_found){
+        window.location.href = `/register/${data.promo_code}`;
+    } else {
+        setTimeout(pollChatId, 2000); // riprova ogni 2 secondi
+    }
+}
+pollChatId();
+</script>
