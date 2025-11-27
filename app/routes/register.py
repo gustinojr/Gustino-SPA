@@ -4,33 +4,20 @@ from app import db
 
 register_bp = Blueprint("register", __name__, url_prefix="/register")
 
-@register_bp.route("/check-chatid")
-def check_chatid():
-    code = request.args.get("code")
-    user = User.query.filter_by(promo_code=code).first()
-    if user and user.chat_id:
-        return jsonify({"redirect": url_for("register_bp.register", code=code)})
-    return jsonify({"redirect": None})
+@app.route('/register/<promo_code>', methods=['GET', 'POST'])
+def register(promo_code):
+    temp_id = session.get('temp_id')
+    user = User.query.filter_by(temp_identifier=temp_id).first()
     
-@register_bp.route("/<promo>", methods=["GET", "POST"])
-def register(promo):
-    promo_row = PromoCode.query.filter_by(code=promo).first_or_404()
-    user = None
-
-    if promo_row.assigned_user_id:
-        user = User.query.get(promo_row.assigned_user_id)
-
-    if request.method == "POST":
-        name = request.form.get("name")
-        if user:
-            user.name = name
-        else:
-            user = User(name=name, promo_code=promo)
-            db.session.add(user)
-            promo_row.assigned_user_id = user.id
-
-        promo_row.redeemed = True
+    if request.method == 'POST':
+        name = request.form.get('name')
+        user.name = name
         db.session.commit()
-        return redirect(url_for("booking.booking", user_id=user.id))
 
-    return render_template("registration.html", promo=promo, user=user)
+        # invia messaggio Telegram
+        tg_send(user.chat_id, f"Ciao {name}, registrazione completata!")
+        tg_send(current_app.config['OWNER_CHAT_ID'], f"{name} si è registrato con promo {promo_code}")
+
+        return redirect(f'/booking/{user.id}')
+
+    return render_template('register.html', promo_code=promo_code)
