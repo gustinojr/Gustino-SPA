@@ -4,7 +4,8 @@ from app import db
 
 register_bp = Blueprint("register", __name__, url_prefix="/register")
 
-@app.route('/register/<promo_code>', methods=['GET', 'POST'])
+
+@home_bp.route('/register/<promo_code>', methods=['GET', 'POST'])
 def register(promo_code):
     temp_id = session.get('temp_id')
     user = User.query.filter_by(temp_identifier=temp_id).first()
