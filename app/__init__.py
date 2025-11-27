@@ -17,7 +17,8 @@ def create_app():
     from app.routes.bot import bot_bp
     from app.routes.booking import booking_bp
     from app.routes.register import register_bp
-
+    from app.telegram_polling import start_polling
+    
     app.register_blueprint(home_bp)
     app.register_blueprint(bot_bp)
     app.register_blueprint(booking_bp)
@@ -26,5 +27,5 @@ def create_app():
 
     with app.app_context():
         db.create_all()
-
+    start_polling(app)
     return app
