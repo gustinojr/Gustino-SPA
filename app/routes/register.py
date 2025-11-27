@@ -1,13 +1,11 @@
-from flask import Blueprint, render_template, request, redirect, url_for
-from app.models import User, PromoCode, db
 from datetime import datetime
+from flask import Blueprint, render_template, request, redirect, url_for, current_app
+from app.models import User, PromoCode, db
+
+register_bp = Blueprint('register_bp', __name__)
 
 
-
-register_bp = Blueprint("register", __name__, url_prefix="/register")
-
-
-@home_bp.route('/register/<promo_code>', methods=['GET', 'POST'])
+@register_bp.route('/register/<promo_code>', methods=['GET', 'POST'])
 def register(promo_code):
     temp_id = session.get('temp_id')
     user = User.query.filter_by(temp_identifier=temp_id).first()
