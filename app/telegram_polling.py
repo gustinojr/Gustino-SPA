@@ -1,19 +1,15 @@
 import time
 import requests
 import threading
-from flask import current_app
 from app import db
 from app.models import User
 
-last_update_id = None
-
 def polling_loop(app):
-    global last_update_id
+    with app.app_context():  # <-- importantissimo
+        token = app.config["TELEGRAM_BOT_TOKEN"]
+        url = f"https://api.telegram.org/bot{token}/getUpdates"
+        last_update_id = None
 
-    token = app.config["TELEGRAM_BOT_TOKEN"]
-    url = f"https://api.telegram.org/bot{token}/getUpdates"
-
-    with app.app_context():
         while True:
             try:
                 params = {}
@@ -23,20 +19,13 @@ def polling_loop(app):
                 r = requests.get(url, params=params, timeout=5)
                 data = r.json()
 
-                if "result" not in data:
-                    time.sleep(1)
-                    continue
-
-                for update in data["result"]:
+                for update in data.get("result", []):
                     last_update_id = update["update_id"]
 
                     if "message" in update:
                         chat_id = update["message"]["chat"]["id"]
                         text = update["message"]["text"]
 
-                        current_app.logger.info(f"New Telegram message from {chat_id}: {text}")
-
-                        # 👇 QUI SALVI IL CHAT_ID NEL DATABASE
                         user = User.query.filter_by(chat_id=chat_id).first()
                         if not user:
                             user = User(chat_id=chat_id)
@@ -46,10 +35,10 @@ def polling_loop(app):
                 time.sleep(1)
 
             except Exception as e:
-                current_app.logger.error(f"Polling error: {e}")
+                print("Polling Error:", e)
                 time.sleep(2)
 
 
 def start_polling(app):
-    thread = threading.Thread(target=polling_loop, args=(app,), daemon=True)
-    thread.start()
+    t = threading.Thread(target=polling_loop, args=(app,), daemon=True)
+    t.start()
