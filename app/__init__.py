@@ -17,7 +17,9 @@ def create_app():
     from app.routes.register import register_bp
     from app.routes.booking import booking_bp
     from app.routes.telegram_webhook import telegram_bp
-
+    from app.routes.bot import bot_bp
+    
+    app.register_blueprint(bot_bp)
     app.register_blueprint(home_bp)
     app.register_blueprint(register_bp)
     app.register_blueprint(booking_bp)
