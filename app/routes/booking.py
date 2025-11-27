@@ -1,4 +1,11 @@
-@app.route('/booking/<int:user_id>', methods=['GET', 'POST'])
+from flask import Blueprint, render_template, request, redirect, flash, current_app
+from app.models import Booking, User
+from app.telegram_utils import tg_send  # il tuo modulo per Telegram
+from app import db
+
+booking_bp = Blueprint('booking_bp', __name__)
+
+@booking_bp.route('/booking/<int:user_id>', methods=['GET', 'POST'])
 def booking(user_id):
     user = User.query.get(user_id)
     
@@ -10,7 +17,7 @@ def booking(user_id):
         db.session.add(booking)
         db.session.commit()
 
-        # invia messaggio Telegram
+        # invia messaggi Telegram
         tg_send(user.chat_id, f"Prenotazione confermata: {date} {time}")
         tg_send(current_app.config['OWNER_CHAT_ID'], f"{user.name} ha prenotato: {date} {time}")
 
