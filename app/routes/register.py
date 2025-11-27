@@ -1,5 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for
 from app.models import User, PromoCode, db
+from datetime import datetime
+
 
 
 register_bp = Blueprint("register", __name__, url_prefix="/register")
