@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Registrazione - Gustino SPA</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='../static/css/style.css') }}">
+</head>
+<body>
+<div class="container">
+    <h2>Registrazione</h2>
+
+    {% if user %}
+        <p>Benvenuto, {{ user.name if user.name else "Utente" }}!</p>
+        {% if not user.chat_id %}
+            <p>Apri prima il bot Telegram per continuare.</p>
+            <a href="https://t.me/{{ bot_username }}" target="_blank">
+                <button type="button">Apri Telegram Bot</button>
+            </a>
+        {% else %}
+            <form method="POST">
+                <input type="text" name="name" placeholder="Inserisci il tuo nome" value="{{ user.name if user.name else '' }}" required>
+                <button type="submit">Conferma</button>
+            </form>
+        {% endif %}
+    {% else %}
+        <p>Codice promo non valido. Torna alla home.</p>
+    {% endif %}
+
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for msg in messages %}
+                <div class="flash">{{ msg }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+</div>
+</body>
+</html>

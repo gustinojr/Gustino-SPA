@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script>
+        async function checkChat() {
+            const code = "{{ promo_code }}";
+            const res = await fetch(`/check-chatid?code=${code}`);
+            const data = await res.json();
+            if (data.redirect) {
+                window.location.href = data.redirect;
+            } else {
+                setTimeout(checkChat, 2000);
+            }
+        }
+        checkChat();
+    </script>
+</head>
+<body>
+    <h3>Attendi che il bot riceva il tuo chat ID...</h3>
+</body>
+</html>
