@@ -6,7 +6,7 @@ body {
   justify-content: center;
   align-items: center;
   font-family: 'Trebuchet MS', sans-serif;
-  background-image: url("../static/images/capybara.jpeg");
+  background-image: url("images/capybara.jpeg");
   background-position: center center;
   background-repeat: no-repeat;
   background-size: cover;
@@ -83,7 +83,7 @@ button:hover {
 }
 
 @media (max-width: 768px) {
-  body { background-image: url("../static/images/capybara_small.jpeg"); background-attachment: scroll; }
+  body { background-image: url("images/capybara_small.jpeg"); background-attachment: scroll; }
   .container { padding: 1.5rem 2rem; max-width: 90%; }
   h2 { font-size: 1.5rem; }
   h3 { font-size: 1rem; }
@@ -91,7 +91,7 @@ button:hover {
 }
 
 @media (max-width: 480px) {
-  body { background-image: url("../static/images/capybara_small.jpeg"); background-attachment: scroll; background-size: auto; background-position: center; }
+  body { background-image: url("images/capybara_small.jpeg"); background-attachment: scroll; background-size: auto; background-position: center; }
   .container { padding: 1.2rem 1.5rem; width: 95%; border-width: 2px; }
   h2 { font-size: 1.3rem; }
   h3 { font-size: 0.9rem; }
