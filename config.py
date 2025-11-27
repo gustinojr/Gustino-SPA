@@ -19,7 +19,7 @@ class Config:
 
     # Promo codes
     DEFAULT_PROMO_CODES = os.environ.get("INITIAL_CODES", "GUSTINO2025,20121997,VIP2025").split(",")
-    VALID_CODE = os.environ.get("20121997")
+    VALID_CODE = os.environ.get("promo", "20121997")
 
     # Logging
     LOG_PATH = os.environ.get("LOG_PATH", "app.log")
