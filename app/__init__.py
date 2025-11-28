@@ -2,7 +2,6 @@ from flask import Flask
 from app.routes.home import home_bp
 from app.routes.register import register_bp
 from app.routes.bot import bot_bp
-from app.telegram_polling import start_polling
 import os
 
 def create_app():
@@ -14,7 +13,5 @@ def create_app():
     app.register_blueprint(register_bp)
     app.register_blueprint(bot_bp)
 
-    # Avvio bot Telegram all'avvio dell'app
-    start_polling()
 
     return app
