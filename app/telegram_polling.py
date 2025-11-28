@@ -18,9 +18,11 @@ bot = telebot.TeleBot(token)
 bot_thread = None
 bot_running = False
 
+from threading import Thread
 
 def start_bot_polling():
-    global bot_thread, bot_running
+    thread = Thread(target=bot.infinity_polling, daemon=True)
+    thread.start()
 
     # Evita di avviare il bot più volte
     if bot_running:
