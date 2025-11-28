@@ -4,10 +4,9 @@ from app.models import User
 
 check_bp = Blueprint("check", __name__)
 
-@check_bp.route("/checkChatId")
-def check_chat_id():
-    chat_id = session.get("chat_id")
-    promo = session.get("promo_code")
+@home_bp.route("/wait-for-chatid")
+def wait_for_chatid():
+    return render_template("wait_for_chatid.html")
 
     if chat_id:
         return jsonify({"ok": True, "promo": promo})
