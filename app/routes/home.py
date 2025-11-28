@@ -3,15 +3,12 @@ from app.telegram_polling import start_bot_polling
 
 home_bp = Blueprint("home_bp", __name__)
 
-@home_bp.route("/start-bot")
-def start_bot():
-    from app.telegram_polling import start_bot_polling
-
-    # Avvia polling (se non è già in esecuzione)
+@home_bp.route("/wait-for-chatid")
+def wait_for_chatid():
+        # Avvia polling (se non è già in esecuzione)
     start_bot_polling()
+    return render_template("wait_for_chatid.html")
 
-    # Poi manda l’utente nella pagina di attesa
-    return redirect(url_for("home.wait_for_chatid"))
 
 @home_bp.route("/")
 def home():
