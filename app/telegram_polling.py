@@ -19,12 +19,17 @@ def run_bot():
     print("Polling avviato")
     bot.infinity_polling()
 
-def start_bot_polling():
-    global bot_thread, bot_running
+def start_polling():
+    global bot_running
 
     if bot_running:
         print("Bot già in esecuzione")
-        return
+        return False
 
-    bot_thread = threading.Thread(target=run_bot, daemon=True)
-    bot_thread.start()
+    bot_running = True
+    print("Polling avviato")
+
+    thread = threading.Thread(target=lambda: bot.infinity_polling(skip_pending=True))
+    thread.daemon = True
+    thread.start()
+    return True
