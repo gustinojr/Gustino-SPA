@@ -19,8 +19,4 @@ def create_app():
     app.register_blueprint(register_bp)
     app.register_blueprint(bot_bp)
 
-    # AVVIO POLLING TELEGRAM
-    with app.app_context():
-        from app.telegram_polling import start_bot_polling
-
     return app
