@@ -1,44 +1,32 @@
-import time
-import requests
 import threading
-from app import db
-from app.models import User
+import time
+import telebot
 
-def polling_loop(app):
-    with app.app_context():  # <-- importantissimo
-        token = app.config["TELEGRAM_BOT_TOKEN"]
-        url = f"https://api.telegram.org/bot{token}/getUpdates"
-        last_update_id = None
+from flask import current_app
 
-        while True:
-            try:
-                params = {}
-                if last_update_id:
-                    params["offset"] = last_update_id + 1
-
-                r = requests.get(url, params=params, timeout=5)
-                data = r.json()
-
-                for update in data.get("result", []):
-                    last_update_id = update["update_id"]
-
-                    if "message" in update:
-                        chat_id = update["message"]["chat"]["id"]
-                        text = update["message"]["text"]
-
-                        user = User.query.filter_by(chat_id=chat_id).first()
-                        if not user:
-                            user = User(chat_id=chat_id)
-                            db.session.add(user)
-                            db.session.commit()
-
-                time.sleep(1)
-
-            except Exception as e:
-                print("Polling Error:", e)
-                time.sleep(2)
+bot_thread = None
+bot_running = False
 
 
-def start_polling(app):
-    t = threading.Thread(target=polling_loop, args=(app,), daemon=True)
-    t.start()
+def start_bot_polling():
+    global bot_thread, bot_running
+
+    # Evita di avviare il bot più volte
+    if bot_running:
+        return
+
+    bot_running = True
+
+    def run_bot():
+        from app import create_app
+        app = create_app()
+        with app.app_context():
+            token = current_app.config["TELEGRAM_BOT_TOKEN"]
+            bot = telebot.TeleBot(token)
+
+            print("BOT POLLING STARTED")
+
+            bot.infinity_polling(timeout=10, long_polling_timeout=5)
+
+    bot_thread = threading.Thread(target=run_bot, daemon=True)
+    bot_thread.start()
