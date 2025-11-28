@@ -8,10 +8,15 @@
     <h2>Benvenuto!</h2>
     <p>Clicca il pulsante per avviare il bot e aprire Telegram.</p>
 
-   <a href="https://t.me/GustinoSpa_bot" target="_blank">
-    <button onclick="window.location.href='/start-bot'">
-        Apri Bot Telegram
-    </button>
+
+<a href="https://t.me/GustinoSpa_bot" target="_blank">
+<button onclick="startBot()">Attiva Bot</button>
+
+<script>
+function startBot() {
+    window.location.href = "/start-bot";
+}
+</script>
 </a>
 
 
@@ -19,4 +24,5 @@
 
 
 </body>
+    
 </html>
