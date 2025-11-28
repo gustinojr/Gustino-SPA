@@ -33,7 +33,7 @@
         .then(data => {
           if (!data.waiting) {
             // Messaggio ricevuto: reindirizza
-            window.location.href = "/registration"; // Modifica questo URL con la tua pagina successiva
+            window.location.href = "/register/<promo_code>"; // Modifica questo URL con la tua pagina successiva
           } else {
             // Continua a fare polling ogni secondo
             document.getElementById("status").textContent = "In attesa del tuo messaggio...";
