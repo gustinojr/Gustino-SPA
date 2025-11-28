@@ -2,7 +2,7 @@ import threading
 import telebot
 import os
 
-token = os.getenv("TELEGRAM_TOKEN")
+token = os.getenv("TELEGRAM_BOT_TOKEN")
 
 bot_running = False     # <--- QUI! Variabile globale
 
