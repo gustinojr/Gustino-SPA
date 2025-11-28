@@ -4,3 +4,4 @@ psycopg2-binary
 requests==2.32.1
 python-dotenv==1.0.0
 gunicorn==21.2.0
+pyTelegramBotAPI
