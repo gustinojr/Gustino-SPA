@@ -1,6 +1,5 @@
 from flask import Blueprint, render_template, redirect, url_for, jsonify
 from app.telegram_polling import start_polling, bot_running
-from app.telegram_polling import bot  # se vuoi leggere lo stato del bot o chat_id
 
 home_bp = Blueprint("home_bp", __name__)
 
