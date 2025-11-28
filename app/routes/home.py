@@ -1,4 +1,4 @@
-from flask import Blueprint, redirect, url_for
+from flask import Blueprint, redirect, url_for, render_template
 from app.telegram_polling import start_bot_polling
 
 home_bp = Blueprint("home_bp", __name__)
