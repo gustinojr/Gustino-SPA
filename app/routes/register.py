@@ -1,13 +1,15 @@
-from datetime import datetime
-from flask import Blueprint, render_template, request, redirect, url_for, current_app
-from app.models import User, PromoCode, db
+from flask import Blueprint, session, jsonify
 
-register_bp = Blueprint('register_bp', __name__)
+register_bp = Blueprint("register_bp", __name__)
 
-
-@register_bp.route('/register/<promo_code>', methods=['GET', 'POST'])
+@register_bp.route("/register/<promo_code>")
 def register(promo_code):
-    temp_id = session.get('temp_id')
+    # Esempio di uso session
+    temp_id = session.get('temp_id', None)
+    return jsonify({
+        "promo_code": promo_code,
+        "temp_id": temp_id
+    })
     user = User.query.filter_by(temp_identifier=temp_id).first()
     
     if request.method == 'POST':
