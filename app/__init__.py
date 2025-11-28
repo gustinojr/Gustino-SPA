@@ -22,6 +22,6 @@ def create_app():
     # AVVIO POLLING TELEGRAM
     with app.app_context():
         from app.telegram_polling import start_bot_polling
-        start_polling(app)
+        start_bot_polling(app)
 
     return app
