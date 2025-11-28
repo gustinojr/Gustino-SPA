@@ -8,21 +8,15 @@
     <h2>Benvenuto!</h2>
     <p>Clicca il pulsante per avviare il bot e aprire Telegram.</p>
 
-    <button onclick="startAndOpenBot()">Avvia Bot Telegram</button>
+   <a href="https://t.me/GustinoSpa_bot" target="_blank">
+    <button onclick="window.location.href='/start-bot'">
+        Apri Bot Telegram
+    </button>
+</a>
+
 
 </div>
 
-<script>
-function startAndOpenBot() {
-    // 1️⃣ Avvia il polling del bot
-    fetch("/start-bot");
-
-    // 2️⃣ Apre Telegram dopo 300ms
-    setTimeout(() => {
-        window.open("https://t.me/GustinoSpa_bot", "_blank");
-    }, 300);
-}
-</script>
 
 </body>
 </html>
