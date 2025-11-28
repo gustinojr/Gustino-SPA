@@ -9,13 +9,9 @@ def home():
     return render_template("home.html")
 
 
-# Avvia il bot (chiamata dalla UI)
 @home_bp.route("/start-bot")
 def start_bot():
-    ok = start_polling()
-    if not ok:
-        return redirect(url_for("home_bp.wait_for_chatid"))
-
+    start_polling()  # avvia o continua se già in esecuzione
     return redirect(url_for("home_bp.wait_for_chatid"))
 
 
@@ -24,15 +20,9 @@ def start_bot():
 def wait_for_chatid():
     return render_template("wait_for_chatid.html")
 
-
-# Endpoint AJAX per verificare se il bot ha ricevuto un messaggio
 @home_bp.route("/check-chat")
 def check_chat():
-    try:
-        from app.telegram_polling import chat_id_global
-    except ImportError:
-        chat_id_global = None
-
+    global chat_id_global
     if chat_id_global is None:
         return jsonify({"waiting": True})
     return jsonify({"waiting": False, "chat_id": chat_id_global})
