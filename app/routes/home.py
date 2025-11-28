@@ -5,8 +5,13 @@ home_bp = Blueprint("home_bp", __name__)
 
 @home_bp.route("/start-bot")
 def start_bot():
-    start_bot_polling()  # avvia il bot in background
-    return redirect(url_for("home_bp.home"))  # torna alla home
+    from app.telegram_polling import start_bot_polling
+
+    # Avvia polling (se non è già in esecuzione)
+    start_bot_polling()
+
+    # Poi manda l’utente nella pagina di attesa
+    return redirect(url_for("home.wait_for_chatid"))
 
 @home_bp.route("/")
 def home():
