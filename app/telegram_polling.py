@@ -1,45 +1,32 @@
 import threading
-import time
 import telebot
 import os
-from flask import current_app
-from dotenv import load_dotenv
-import telebot
 
-load_dotenv()  # carica le variabili da .env
+token = os.getenv("TELEGRAM_TOKEN")
 
-token = os.getenv("TELEGRAM_BOT_TOKEN")
+bot_running = False     # <--- QUI! Variabile globale
 
-if not token:
-    raise ValueError("TELEGRAM_BOT_TOKEN non trovato! Controlla il .env")
-
-bot = telebot.TeleBot(token)
-    
-bot_thread = None
-bot_running = False
-
-from threading import Thread
-
-def start_bot_polling():
-    thread = Thread(target=bot.infinity_polling, daemon=True)
-    thread.start()
-
-    # Evita di avviare il bot più volte
-    if bot_running:
-        return
-
+def run_bot():
+    global bot_running
     bot_running = True
 
-    def run_bot():
-        from app import create_app
-        app = create_app()
-        with app.app_context():
-            token = current_app.config["TELEGRAM_BOT_TOKEN"]
-            bot = telebot.TeleBot(token)
+    bot = telebot.TeleBot(token)
 
-            print("BOT POLLING STARTED")
+    @bot.message_handler(commands=['start'])
+    def start(msg):
+        bot.reply_to(msg, "Bot attivo!")
 
-            bot.infinity_polling(timeout=10, long_polling_timeout=5)
+    bot.infinity_polling()
 
-    bot_thread = threading.Thread(target=run_bot, daemon=True)
-    bot_thread.start()
+
+def start_bot_polling():
+    global bot_running
+
+    if bot_running:   # <--- ORA ESISTE
+        print("Bot già in esecuzione")
+        return
+
+    thread = threading.Thread(target=run_bot)
+    thread.daemon = True
+    thread.start()
+    print("Bot avviato in polling")
