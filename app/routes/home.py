@@ -9,8 +9,13 @@ def home():
 
 @home_bp.route("/start-bot")
 def start_bot():
-    start_bot_polling()
-    return redirect(url_for("home_bp.wait_for_chatid"))
+    from app.bot import start_polling
+
+    ok = start_polling()
+    if not ok:
+        return "Bot già in esecuzione", 200
+
+    return redirect(url_for("home.wait_for_chatid"))
 
 @home_bp.route("/wait-for-chatid")
 def wait_for_chatid():
