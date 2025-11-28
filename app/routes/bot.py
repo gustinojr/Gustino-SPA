@@ -1,5 +1,4 @@
 from flask import Blueprint, jsonify
-from app.telegram_polling import start_bot_polling
 
 bot_bp = Blueprint("'bot'", __name__)
 
