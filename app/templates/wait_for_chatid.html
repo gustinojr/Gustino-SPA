@@ -1,22 +1,53 @@
 <!DOCTYPE html>
-<html>
+<html lang="it">
 <head>
-    <meta http-equiv="refresh" content="9999">
-    <script>
-        async function checkChatId() {
-            const res = await fetch("/check-chat");
-            const data = await res.json();
-
-            if (data.found) {
-                window.location.href = "/registration";
-            }
-        }
-
-        setInterval(checkChatId, 3000);
-    </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Attendi il Bot</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+    /* Stile minimale per la pagina di attesa */
+    .container {
+      text-align: center;
+      padding: 2rem;
+      background: rgba(255,255,255,0.9);
+      border-radius: 15px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+      max-width: 400px;
+      margin: 5rem auto;
+    }
+    h2 { margin-bottom: 1rem; }
+  </style>
 </head>
 <body>
-    <h2>In attesa che tu scriva il codice al bot...</h2>
-    <p>Lascia questa pagina aperta. Controllo in corso...</p>
+  <div class="container">
+    <h2>Avviato il Bot!</h2>
+    <p>Invia un messaggio al bot su Telegram per continuare...</p>
+    <p id="status">In attesa del tuo messaggio...</p>
+  </div>
+
+  <script>
+    function checkChat() {
+      fetch("{{ url_for('home_bp.check_chat') }}")
+        .then(res => res.json())
+        .then(data => {
+          if (!data.waiting) {
+            // Messaggio ricevuto: reindirizza
+            window.location.href = "/registration"; // Modifica questo URL con la tua pagina successiva
+          } else {
+            // Continua a fare polling ogni secondo
+            document.getElementById("status").textContent = "In attesa del tuo messaggio...";
+            setTimeout(checkChat, 1000);
+          }
+        })
+        .catch(err => {
+          console.error("Errore nel polling:", err);
+          setTimeout(checkChat, 2000); // Ritenta in caso di errore
+        });
+    }
+
+    // Avvia il polling appena carica la pagina
+    checkChat();
+  </script>
 </body>
 </html>
