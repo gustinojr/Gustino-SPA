@@ -2,7 +2,7 @@ from flask import Flask
 from app.routes.home import home_bp
 from app.routes.register import register_bp
 from app.routes.bot import bot_bp
-from app.telegram_bot import start_bot
+from app.telegram_polling import start_polling
 import os
 
 def create_app():
