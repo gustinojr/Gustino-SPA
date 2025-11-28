@@ -15,6 +15,6 @@ def create_app():
     app.register_blueprint(bot_bp)
 
     # Avvio bot Telegram all'avvio dell'app
-    start_bot()
+    start_polling()
 
     return app
