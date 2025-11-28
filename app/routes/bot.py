@@ -1,11 +1,11 @@
 from flask import Blueprint, jsonify
-from app.telegram_polling import start_bot_polling
+from app.telegram_polling import start_polling
 
-bot_bp = Blueprint("'bot'", __name__)
+bot_bp = Blueprint("bot_bp", __name__)
 
-bot_running = False
-
-@bot_bp.route('/start-bot')
+@bot_bp.route("/start-bot")
 def start_bot():
-    start_bot_polling()
+    ok = start_polling()
+    if not ok:
+        return jsonify({"status": "already running"})
     return jsonify({"status": "ok"})
