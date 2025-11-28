@@ -4,12 +4,16 @@ import telebot
 import os
 from flask import current_app
 from dotenv import load_dotenv
+import telebot
 
-load_dotenv()  # carica il .env
+load_dotenv()  # carica le variabili da .env
+
 token = os.getenv("TELEGRAM_BOT_TOKEN")
 
-if token is None:
+if not token:
     raise ValueError("TELEGRAM_BOT_TOKEN non trovato! Controlla il .env")
+
+bot = telebot.TeleBot(token)
     
 bot_thread = None
 bot_running = False
