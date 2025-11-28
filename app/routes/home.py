@@ -14,7 +14,7 @@ def home():
 def start_bot():
     ok = start_polling()
     if not ok:
-        return "Bot già in esecuzione", 200
+        return "Bot già in esecuzione", 200 redirect(url_for("home_bp.wait_for_chatid"))
 
     return redirect(url_for("home_bp.wait_for_chatid"))
 
