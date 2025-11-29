@@ -1,8 +1,12 @@
 from flask import Blueprint, render_template, redirect, url_for, jsonify, request
 import app.telegram_polling as telegram_polling  # importa il modulo intero
 from app.models import User, db, Booking
+import os
 
 home_bp = Blueprint("home_bp", __name__)
+
+# Determina modalità webhook o polling
+USE_WEBHOOK = os.getenv("USE_WEBHOOK", "false").lower() == "true"
 
 # Pagina principale
 @home_bp.route("/")
@@ -49,11 +53,17 @@ def wait_for_chatid():
 # Endpoint AJAX per verificare se il bot ha ricevuto un messaggio (usato dal frontend)
 @home_bp.route("/check-chatid")
 def check_chatid():
-    chat_id = getattr(telegram_polling, "chat_id_global", None)
-    
-    print(f"🔍 check_chatid chiamato - chat_id_global: {chat_id}")
-    print(f"🔍 bot_running: {telegram_polling.bot_running}")
-    print(f"🔍 pending_chat_ids: {getattr(telegram_polling, 'pending_chat_ids', {})}")
+    if USE_WEBHOOK:
+        # Modalità webhook
+        from app.telegram_webhook import get_latest_chat_id
+        chat_id = get_latest_chat_id()
+        print(f"🔍 [WEBHOOK] check_chatid chiamato - chat_id: {chat_id}")
+    else:
+        # Modalità polling
+        chat_id = getattr(telegram_polling, "chat_id_global", None)
+        print(f"🔍 [POLLING] check_chatid chiamato - chat_id_global: {chat_id}")
+        print(f"🔍 bot_running: {telegram_polling.bot_running}")
+        print(f"🔍 pending_chat_ids: {getattr(telegram_polling, 'pending_chat_ids', {})}")
     
     if chat_id is None:
         return jsonify({"chat_id": None})

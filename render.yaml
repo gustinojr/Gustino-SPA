@@ -7,6 +7,10 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.9.0
+      - key: USE_WEBHOOK
+        value: true
+      - key: WEBHOOK_URL
+        sync: false
       - key: SECRET_KEY
         sync: false
       - key: TELEGRAM_BOT_TOKEN
