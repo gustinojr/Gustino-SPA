@@ -21,12 +21,21 @@ webhook_bp = Blueprint('webhook_bp', __name__)
 
 @webhook_bp.route('/telegram-webhook', methods=['POST'])
 def webhook():
+    print(f"📥 Webhook chiamato - Content-Type: {request.headers.get('content-type')}")
+    
     if request.headers.get('content-type') == 'application/json':
         json_string = request.get_data().decode('utf-8')
+        print(f"📦 Dati ricevuti: {json_string[:200]}...")  # Primi 200 caratteri
+        
         update = telebot.types.Update.de_json(json_string)
+        print(f"✅ Update decodificato: update_id={update.update_id}")
+        
         bot.process_new_updates([update])
+        print(f"✅ Update processato")
+        
         return jsonify({"status": "ok"}), 200
     else:
+        print(f"⚠️ Content-Type non valido: {request.headers.get('content-type')}")
         return jsonify({"error": "Invalid content type"}), 403
 
 # Handler per messaggi

@@ -35,14 +35,18 @@ def check_promo_code():
 # Avvia il bot e reindirizza alla pagina di attesa
 @home_bp.route("/start-bot")
 def start_bot():
-    # Assicurati che il bot sia in esecuzione
-    if not telegram_polling.bot_running:
-        print("⚠️ Bot non in esecuzione, avvio...")
-        telegram_polling.start_polling()
+    # In modalità webhook, il bot è sempre attivo
+    if USE_WEBHOOK:
+        print("✅ Modalità WEBHOOK - bot sempre attivo")
     else:
-        print("✅ Bot già in esecuzione")
+        # Solo in modalità polling verifica se il bot è in esecuzione
+        if not telegram_polling.bot_running:
+            print("⚠️ Bot non in esecuzione, avvio...")
+            telegram_polling.start_polling()
+        else:
+            print("✅ Bot già in esecuzione")
+        print(f"📊 Stato bot: bot_running={telegram_polling.bot_running}, chat_id_global={telegram_polling.chat_id_global}")
     
-    print(f"📊 Stato bot: bot_running={telegram_polling.bot_running}, chat_id_global={telegram_polling.chat_id_global}")
     return redirect(url_for("home_bp.wait_for_chatid"))
 
 # Pagina di attesa per ottenere chat_id
