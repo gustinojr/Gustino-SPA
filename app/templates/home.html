@@ -8,22 +8,9 @@
     <h2>Benvenuto!</h2>
     <p>Clicca il pulsante per avviare il bot e aprire Telegram.</p>
 
-    <button id="startBotBtn">Attiva Bot</button>
+    <form action="/start-bot" method="GET">
+        <button type="submit">Attiva Bot</button>
+    </form>
 </div>
-
-<script>
-document.getElementById("startBotBtn").addEventListener("click", async function() {
-    try {
-        // Avvia il bot sul server
-        await fetch("/start-bot");  
-
-        // Apri Telegram in una nuova scheda
-        window.open("https://t.me/GustinoSpa_bot", "_blank");
-    } catch (err) {
-        console.error("Errore avviando il bot:", err);
-    }
-});
-</script>
-
 </body>
 </html>
