@@ -57,9 +57,14 @@ def handle_message(message):
     chat_id = message.chat.id
     chat_id_global = chat_id  # salva il chat_id globale
     
+    print(f"🔔 Messaggio ricevuto da chat_id: {chat_id}")
+    print(f"📝 chat_id_global aggiornato a: {chat_id_global}")
+    
     # Salva in cache temporanea con timestamp
     import time
     pending_chat_ids[chat_id] = time.time()
+    
+    print(f"💾 pending_chat_ids: {pending_chat_ids}")
     
     # Pulisci chat_id vecchi (oltre 10 minuti)
     current_time = time.time()

@@ -33,7 +33,12 @@ def check_promo_code():
 def start_bot():
     # Assicurati che il bot sia in esecuzione
     if not telegram_polling.bot_running:
+        print("⚠️ Bot non in esecuzione, avvio...")
         telegram_polling.start_polling()
+    else:
+        print("✅ Bot già in esecuzione")
+    
+    print(f"📊 Stato bot: bot_running={telegram_polling.bot_running}, chat_id_global={telegram_polling.chat_id_global}")
     return redirect(url_for("home_bp.wait_for_chatid"))
 
 # Pagina di attesa per ottenere chat_id
@@ -45,6 +50,11 @@ def wait_for_chatid():
 @home_bp.route("/check-chatid")
 def check_chatid():
     chat_id = getattr(telegram_polling, "chat_id_global", None)
+    
+    print(f"🔍 check_chatid chiamato - chat_id_global: {chat_id}")
+    print(f"🔍 bot_running: {telegram_polling.bot_running}")
+    print(f"🔍 pending_chat_ids: {getattr(telegram_polling, 'pending_chat_ids', {})}")
+    
     if chat_id is None:
         return jsonify({"chat_id": None})
     
