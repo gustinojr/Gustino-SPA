@@ -1,53 +1,39 @@
 <!DOCTYPE html>
-<html lang="it">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Attendi il Bot</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-  <style>
-    /* Stile minimale per la pagina di attesa */
-    .container {
-      text-align: center;
-      padding: 2rem;
-      background: rgba(255,255,255,0.9);
-      border-radius: 15px;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-      max-width: 400px;
-      margin: 5rem auto;
-    }
-    h2 { margin-bottom: 1rem; }
-  </style>
+    <meta http-equiv="refresh" content="0; URL='https://t.me/GustinoSpa_bot'">
+
+    <style>
+        body { font-family: Arial; background: #f3f3f3; padding: 20px; }
+        .card { background: white; padding: 20px; border-radius: 10px; max-width: 500px; margin: auto; text-align: center; }
+        .loading { font-size: 18px; color: #555; }
+        .ok { font-size: 22px; font-weight: bold; color: green; }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <h2>Avviato il Bot!</h2>
-    <p>Invia un messaggio al bot su Telegram per continuare...</p>
-    <p id="status">In attesa del tuo messaggio...</p>
-  </div>
+<div class="card">
+    <h2>Attendi…</h2>
+    <p class="loading">Apri Telegram e invia un messaggio al bot.<br>Sto recuperando il tuo Chat ID…</p>
 
-  <script>
-    function checkChat() {
-      fetch("{{ url_for('home_bp.check_chat') }}")
-        .then(res => res.json())
-        .then(data => {
-          if (!data.waiting) {
-            // Messaggio ricevuto: reindirizza
-            window.location.href = "/register/<promo_code>"; // Modifica questo URL con la tua pagina successiva
-          } else {
-            // Continua a fare polling ogni secondo
-            document.getElementById("status").textContent = "In attesa del tuo messaggio...";
-            setTimeout(checkChat, 1000);
-          }
-        })
-        .catch(err => {
-          console.error("Errore nel polling:", err);
-          setTimeout(checkChat, 2000); // Ritenta in caso di errore
-        });
+    <div id="result"></div>
+</div>
+
+<script>
+async function checkChat() {
+    let r = await fetch("/check-chatid");
+    let data = await r.json();
+
+    if (data.chat_id) {
+        document.getElementById("result").innerHTML =
+            `<p class='ok'>Chat ID trovato:<br><b>${data.chat_id}</b></p>`;
+        return;
     }
 
-    // Avvia il polling appena carica la pagina
-    checkChat();
-  </script>
+    setTimeout(checkChat, 2000);
+}
+
+checkChat();
+</script>
+
 </body>
 </html>
