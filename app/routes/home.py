@@ -63,9 +63,10 @@ def check_chatid():
 @home_bp.route("/reset-db")
 def reset_db():
     try:
-        # Elimina tutti i dati
-        Booking.query.delete()
-        User.query.delete()
+        # Elimina tutti i dati usando SQL diretto per evitare problemi con foreign key
+        db.session.execute(db.text("DELETE FROM booking"))
+        db.session.execute(db.text("DELETE FROM reservation"))
+        db.session.execute(db.text("DELETE FROM \"user\""))
         db.session.commit()
         
         # Reset chat_id_global
