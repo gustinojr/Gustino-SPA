@@ -31,7 +31,9 @@ def check_promo_code():
 # Avvia il bot e reindirizza alla pagina di attesa
 @home_bp.route("/start-bot")
 def start_bot():
-    telegram_polling.start_polling()
+    # Assicurati che il bot sia in esecuzione
+    if not telegram_polling.bot_running:
+        telegram_polling.start_polling()
     return redirect(url_for("home_bp.wait_for_chatid"))
 
 # Pagina di attesa per ottenere chat_id

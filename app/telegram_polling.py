@@ -18,6 +18,9 @@ bot_thread = None
 bot_running = False
 chat_id_global = None
 
+# Cache temporanea per chat_id pendenti (per gestire la registrazione)
+pending_chat_ids = {}
+
 def start_polling():
     """Avvia il bot in un thread separato."""
     global bot_thread, bot_running
@@ -29,9 +32,15 @@ def start_polling():
     def run_bot():
         global bot_running
         try:
-            bot.infinity_polling(skip_pending=True)
+            bot.infinity_polling(skip_pending=True, timeout=60, long_polling_timeout=60)
         except Exception as e:
             print(f"Errore nel bot: {e}")
+            bot_running = False
+            # Riavvia automaticamente il bot in caso di errore
+            import time
+            time.sleep(5)
+            if not bot_running:
+                start_polling()
         finally:
             bot_running = False
 
@@ -45,7 +54,18 @@ def start_polling():
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
     global chat_id_global
-    chat_id_global = message.chat.id  # salva il chat_id globale
+    chat_id = message.chat.id
+    chat_id_global = chat_id  # salva il chat_id globale
+    
+    # Salva in cache temporanea con timestamp
+    import time
+    pending_chat_ids[chat_id] = time.time()
+    
+    # Pulisci chat_id vecchi (oltre 10 minuti)
+    current_time = time.time()
+    to_remove = [cid for cid, timestamp in pending_chat_ids.items() if current_time - timestamp > 600]
+    for cid in to_remove:
+        del pending_chat_ids[cid]
     
     if message.text and message.text.startswith('/start'):
         bot.reply_to(message, "Ciao! Torna sul sito per completare la registrazione.")
