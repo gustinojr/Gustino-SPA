@@ -8,45 +8,35 @@
         .card { background: white; padding: 20px; border-radius: 10px; max-width: 500px; margin: auto; text-align: center; }
         .loading { font-size: 18px; color: #555; }
         .ok { font-size: 22px; font-weight: bold; color: green; margin-top: 20px; }
-        .instructions { margin-top: 15px; font-size: 16px; color: #333; }
     </style>
 </head>
 <body>
 <div class="card">
     <h2>Attendi…</h2>
     <p class="loading">Sto recuperando il tuo Chat ID…</p>
-
-    <div class="instructions">
-        <p>Telegram si aprirà in una nuova scheda.</p>
-        <p>Invia un messaggio al bot <b>@GustinoSpa_bot</b> per completare la registrazione.</p>
-    </div>
-
     <div id="result"></div>
 </div>
 
 <script>
-    // Apri Telegram in una nuova scheda (solo una volta)
-    window.open("https://t.me/GustinoSpa_bot", "_blank");
+async function checkChat() {
+    try {
+        let r = await fetch("/check-chatid");
+        let data = await r.json();
 
-    async function checkChat() {
-        try {
-            let r = await fetch("/check-chatid");
-            let data = await r.json();
-
-            if (data.chat_id) {
-                document.getElementById("result").innerHTML =
-                    `<p class='ok'>Chat ID trovato:<br><b>${data.chat_id}</b></p>`;
-                return; // Ferma il polling
-            }
-
-            setTimeout(checkChat, 2000); // Riprova ogni 2 secondi
-        } catch (err) {
-            console.error("Errore controllando il Chat ID:", err);
-            setTimeout(checkChat, 2000);
+        if (data.chat_id) {
+            document.getElementById("result").innerHTML =
+                `<p class='ok'>Chat ID trovato:<br><b>${data.chat_id}</b></p>`;
+            return;
         }
-    }
 
-    checkChat();
+        setTimeout(checkChat, 2000);
+    } catch (err) {
+        console.error("Errore controllando il Chat ID:", err);
+        setTimeout(checkChat, 2000);
+    }
+}
+
+checkChat();
 </script>
 </body>
 </html>
