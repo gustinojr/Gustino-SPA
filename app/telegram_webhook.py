@@ -16,29 +16,7 @@ bot = telebot.TeleBot(TOKEN)
 # Cache temporanea per chat_id (invece di variabile globale)
 pending_chat_ids = {}
 
-# Crea un Blueprint per il webhook
-webhook_bp = Blueprint('webhook_bp', __name__)
-
-@webhook_bp.route('/telegram-webhook', methods=['POST'])
-def webhook():
-    print(f"📥 Webhook chiamato - Content-Type: {request.headers.get('content-type')}")
-    
-    if request.headers.get('content-type') == 'application/json':
-        json_string = request.get_data().decode('utf-8')
-        print(f"📦 Dati ricevuti: {json_string[:200]}...")  # Primi 200 caratteri
-        
-        update = telebot.types.Update.de_json(json_string)
-        print(f"✅ Update decodificato: update_id={update.update_id}")
-        
-        bot.process_new_updates([update])
-        print(f"✅ Update processato")
-        
-        return jsonify({"status": "ok"}), 200
-    else:
-        print(f"⚠️ Content-Type non valido: {request.headers.get('content-type')}")
-        return jsonify({"error": "Invalid content type"}), 403
-
-# Handler per messaggi
+# IMPORTANTE: Registra l'handler PRIMA di creare le route
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
     chat_id = message.chat.id
@@ -61,6 +39,28 @@ def handle_message(message):
         bot.reply_to(message, "Ciao! Torna sul sito per completare la registrazione.")
     else:
         bot.reply_to(message, "Messaggio ricevuto! Torna sul sito per continuare.")
+
+# Crea un Blueprint per il webhook
+webhook_bp = Blueprint('webhook_bp', __name__)
+
+@webhook_bp.route('/telegram-webhook', methods=['POST'])
+def webhook():
+    print(f"📥 Webhook chiamato - Content-Type: {request.headers.get('content-type')}")
+    
+    if request.headers.get('content-type') == 'application/json':
+        json_string = request.get_data().decode('utf-8')
+        print(f"📦 Dati ricevuti: {json_string[:200]}...")  # Primi 200 caratteri
+        
+        update = telebot.types.Update.de_json(json_string)
+        print(f"✅ Update decodificato: update_id={update.update_id}")
+        
+        bot.process_new_updates([update])
+        print(f"✅ Update processato")
+        
+        return jsonify({"status": "ok"}), 200
+    else:
+        print(f"⚠️ Content-Type non valido: {request.headers.get('content-type')}")
+        return jsonify({"error": "Invalid content type"}), 403
 
 def setup_webhook(app):
     """Configura il webhook per Telegram"""
