@@ -11,8 +11,6 @@ def home():
 # Avvia il bot
 @home_bp.route("/start-bot")
 def start_bot():
-    telegram_polling.start_polling()  # avvia il bot (ritorna True/False)
-    # Redirige sempre alla pagina di attesa
     return redirect(url_for("home_bp.wait_for_chatid"))
 
 # Pagina di attesa per ottenere chat_id
