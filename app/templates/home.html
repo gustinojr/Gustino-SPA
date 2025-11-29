@@ -1,16 +1,29 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <title>Gustino SPA</title>
 </head>
 <body>
-<div class="container">
     <h2>Benvenuto!</h2>
     <p>Clicca il pulsante per avviare il bot e aprire Telegram.</p>
+    <button id="startBotBtn">Attiva Bot</button>
 
-    <form action="/start-bot" method="GET">
-        <button type="submit">Attiva Bot</button>
-    </form>
-</div>
+    <script>
+    document.getElementById("startBotBtn").addEventListener("click", async () => {
+        try {
+            // Avvia il bot sul server
+            await fetch("/start-bot");
+
+            // Apri Telegram in una nuova scheda
+            window.open("https://t.me/GustinoSpa_bot", "_blank");
+
+            // Reindirizza la pagina corrente a wait-for-chatid
+            window.location.href = "/wait-for-chatid";
+
+        } catch (err) {
+            console.error("Errore avviando il bot:", err);
+        }
+    });
+    </script>
 </body>
 </html>
