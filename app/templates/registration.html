@@ -2,28 +2,79 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registrazione - Gustino SPA</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        * { box-sizing: border-box; }
+        body { 
+            font-family: Arial, sans-serif; 
+            background: url('{{ url_for("static", filename="images/capybara.jpeg") }}') no-repeat center center fixed;
+            background-size: cover;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: -1;
+        }
+        .container { 
+            background: rgba(255, 255, 255, 0.95); 
+            padding: 30px; 
+            border-radius: 10px; 
+            max-width: 600px; 
+            margin: auto;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        @media (max-width: 768px) {
+            body { 
+                padding: 10px;
+                background: url('{{ url_for("static", filename="images/capybara_small.jpeg") }}') no-repeat center center !important;
+                background-size: cover !important;
+                background-attachment: scroll !important;
+            }
+            .container { padding: 20px; }
+            h2 { font-size: 22px; }
+            input[type="text"] { font-size: 14px; padding: 10px; }
+            button { font-size: 14px; padding: 10px; }
+        }
+        @media (max-width: 480px) {
+            body {
+                background: url('{{ url_for("static", filename="images/capybara_small.jpeg") }}') no-repeat center center !important;
+                background-size: auto !important;
+                background-attachment: scroll !important;
+                background-position: center !important;
+            }
+            .container { padding: 15px; max-width: 95%; }
+            h2 { font-size: 20px; }
+            input[type="text"] { font-size: 13px; padding: 8px; }
+            button { font-size: 13px; padding: 8px; border-radius: 8px; }
+        }
+        input[type="text"] { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        button { padding: 12px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        button:hover { background: #0056b3; }
+        .flash { background: #ffeb3b; padding: 10px; margin: 10px 0; border-radius: 5px; }
+    </style>
 </head>
 <body>
 <div class="container">
     <h2>Registrazione</h2>
 
-    {% if user %}
-        <p>Benvenuto, {{ user.name if user.name else "Utente" }}!</p>
-        {% if not user.chat_id %}
-            <p>Apri prima il bot Telegram per continuare.</p>
-            <a href="https://t.me/{{ bot_username }}" target="_blank">
-                <button type="button">Apri Telegram Bot</button>
-            </a>
-        {% else %}
-            <form method="POST">
-                <input type="text" name="name" placeholder="Inserisci il tuo nome" value="{{ user.name if user.name else '' }}" required>
-                <button type="submit">Conferma</button>
-            </form>
-        {% endif %}
+    {% if user and user.chat_id %}
+        <p>Benvenuto! Inserisci i tuoi dati per completare la registrazione.</p>
+        <form method="POST">
+            <input type="hidden" name="chat_id" value="{{ user.chat_id }}">
+            <input type="text" name="name" placeholder="Inserisci il tuo nome" value="{{ user.name if user.name else '' }}" required>
+            <button type="submit">Conferma Registrazione</button>
+        </form>
     {% else %}
-        <p>Codice promo non valido. Torna alla home.</p>
+        <p>Chat ID non disponibile. Per favore <a href="/">torna alla home</a> e attiva il bot.</p>
     {% endif %}
 
     {% with messages = get_flashed_messages() %}
@@ -34,5 +85,6 @@
         {% endif %}
     {% endwith %}
 </div>
+<script src="{{ url_for('static', filename='js/responsive.js') }}"></script>
 </body>
 </html>

@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: gustino-spa
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn run:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.0
+      - key: SECRET_KEY
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_BOT_USERNAME
+        value: GustinoSpa_bot
+      - key: OWNER_CHAT_ID
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: gustino-spa-db
+          property: connectionString
+
+databases:
+  - name: gustino-spa-db
+    databaseName: gustino_spa
+    user: gustino_spa_user

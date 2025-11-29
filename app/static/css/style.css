@@ -13,8 +13,25 @@ body {
   background-attachment: fixed;
 }
 
+body.mobile {
+  background-image: url("/static/images/capybara_small.jpeg") !important;
+  background-attachment: scroll !important; 
+  background-size: auto !important; 
+  background-position: center !important;
+  background-attachment: scroll !important;
+  background-repeat: repeat !important;
+}
+
+body.mobile-small {
+  background-image: url("/static/images/capybara_small.jpeg") !important;
+  background-attachment: scroll !important; 
+  background-size: auto !important; 
+  background-position: center !important;
+  background-repeat: repeat !important;
+}
+
 .container {
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.65);
   border-radius: 20px;
   padding: 2rem 3rem;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
@@ -24,6 +41,31 @@ body {
   border: 3px dashed #d4af37;
   position: relative;
   backdrop-filter: blur(6px);
+}
+.container.mobile {
+  background: rgba(255, 255, 255, 0.65) !important;
+  border-radius: 20px !important;
+  padding: 2rem 3rem;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3) !important;
+  text-align: center !important;
+  max-width: 600px !important;
+  width: 90% !important;
+  border: 3px dashed #d4af37 !important;
+  position: relative !important;
+  backdrop-filter: blur(6px) !important;
+}
+
+.container.mobile-small {
+  background: rgba(255, 255, 255, 0.65) !important;
+  border-radius: 20px !important;
+  padding: 2rem 3rem;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3) !important;
+  text-align: center !important;
+  max-width: 600px !important;
+  width: 90% !important;
+  border: 3px dashed #d4af37 !important;
+  position: relative !important;
+  backdrop-filter: blur(6px) !important;
 }
 
 .container::before {
@@ -51,6 +93,14 @@ input, button {
   border-radius: 10px;
   border: 1px solid #ccc;
   transition: all 0.3s ease;
+}
+input {
+  padding: 0.8rem;
+  font-size: 1rem;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  transition: all 0.3s ease;
+  background-color: whitesmoke;
 }
 
 input:focus {

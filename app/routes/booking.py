@@ -9,6 +9,10 @@ booking_bp = Blueprint('booking_bp', __name__)
 def booking(user_id):
     user = User.query.get(user_id)
     
+    if not user:
+        flash("Utente non trovato.")
+        return redirect('/')
+    
     if request.method == 'POST':
         date = request.form.get('date')
         time = request.form.get('time')
@@ -17,10 +21,28 @@ def booking(user_id):
         db.session.add(booking)
         db.session.commit()
 
-        tg_send(user.chat_id, f"Prenotazione confermata: {date} {time}")
-        tg_send(current_app.config['OWNER_CHAT_ID'], f"{user.name} ha prenotato: {date} {time}")
+        # Invia messaggio all'utente (senza chat_id nel messaggio)
+        user_message = (
+            f"✅ Prenotazione confermata!\n\n"
+            f"👤 {user.name}\n"
+            f"📅 Data: {date}\n"
+            f"🕐 Ora: {time}\n\n"
+            f"Ci vediamo presto! ✨"
+        )
+        tg_send(user.chat_id, user_message)
+        
+        # Invia copia all'owner (con tutti i dettagli)
+        owner_chat = current_app.config.get('OWNER_CHAT_ID')
+        if owner_chat:
+            owner_message = (
+                f"🔔 Nuova prenotazione!\n\n"
+                f"👤 Cliente: {user.name}\n"
+                f"📅 {date} alle {time}\n"
+                f"📞 Chat: {user.chat_id}"
+            )
+            tg_send(owner_chat, owner_message)
 
-        flash("Prenotazione completata!")
+        flash("✅ Prenotazione completata! Riceverai una conferma su Telegram.")
         return redirect(f'/booking/{user.id}')
     
     return render_template('booking.html', user=user)

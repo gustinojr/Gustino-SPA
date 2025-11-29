@@ -2,12 +2,67 @@
 <html>
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Attendi Chat ID</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <style>
-        body { font-family: Arial, sans-serif; background: #f3f3f3; padding: 20px; }
-        .card { background: white; padding: 20px; border-radius: 10px; max-width: 500px; margin: auto; text-align: center; }
+        * { box-sizing: border-box; }
+        body { 
+            font-family: Arial, sans-serif; 
+            background: url('{{ url_for("static", filename="images/capybara.jpeg") }}') no-repeat center center fixed;
+            background-size: cover;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: -1;
+        }
+        .card { 
+            background: rgba(255, 255, 255, 0.95); 
+            padding: 30px; 
+            border-radius: 10px; 
+            max-width: 500px; 
+            width: 100%;
+            margin: auto; 
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
         .loading { font-size: 18px; color: #555; }
-        .ok { font-size: 22px; font-weight: bold; color: green; margin-top: 20px; }
+        .ok { font-size: 22px; font-weight: bold; color: #27ae60; margin-top: 20px; }
+        @media (max-width: 768px) {
+            body { 
+                padding: 10px;
+                background: url('{{ url_for("static", filename="images/capybara_small.jpeg") }}') no-repeat center center !important;
+                background-size: cover !important;
+                background-attachment: scroll !important;
+            }
+            .card { padding: 20px; }
+            h2 { font-size: 22px; }
+            .loading { font-size: 16px; }
+            .ok { font-size: 18px; }
+        }
+        @media (max-width: 480px) {
+            body {
+                background: url('{{ url_for("static", filename="images/capybara_small.jpeg") }}') no-repeat center center !important;
+                background-size: auto !important;
+                background-attachment: scroll !important;
+                background-position: center !important;
+            }
+            .card { padding: 15px; max-width: 95%; }
+            h2 { font-size: 20px; }
+            .loading { font-size: 14px; }
+            .ok { font-size: 16px; }
+        }
     </style>
 </head>
 <body>
@@ -18,14 +73,41 @@
 </div>
 
 <script>
+function getQueryParam(name) {
+    const params = new URLSearchParams(window.location.search);
+    return params.get(name);
+}
+
 async function checkChat() {
     try {
         let r = await fetch("/check-chatid");
         let data = await r.json();
 
         if (data.chat_id) {
-            document.getElementById("result").innerHTML =
-                `<p class='ok'>Chat ID trovato:<br><b>${data.chat_id}</b></p>`;
+            // Controlla se è un utente esistente (ritorno)
+            if (data.existing_user) {
+                document.getElementById("result").innerHTML =
+                    `<p class='ok'>Bentornato ${data.user_name}! 👋<br><b>Chat ID: ${data.chat_id}</b></p>`;
+                
+                // Messaggio speciale per clienti speciali
+                if (data.is_special) {
+                    document.getElementById("result").innerHTML +=
+                        `<p style='color: #d32f2f; font-weight: bold; margin-top: 10px;'>🎁 Cliente VIP - Massaggi Illimitati!</p>`;
+                }
+                
+                // Redirect diretto al booking per utenti esistenti
+                setTimeout(() => { 
+                    window.location.href = `/booking/${data.user_id}`; 
+                }, 2000);
+            } else {
+                // Nuovo utente - procedi con registrazione
+                document.getElementById("result").innerHTML =
+                    `<p class='ok'>Chat ID trovato:<br><b>${data.chat_id}</b></p>`;
+
+                const promo = getQueryParam('promo_code');
+                const target = `/register?chat_id=${data.chat_id}` + (promo ? `&promo_code=${encodeURIComponent(promo)}` : '');
+                setTimeout(() => { window.location.href = target; }, 2000);
+            }
             return;
         }
 
@@ -38,5 +120,6 @@ async function checkChat() {
 
 checkChat();
 </script>
+<script src="{{ url_for('static', filename='js/responsive.js') }}"></script>
 </body>
 </html>

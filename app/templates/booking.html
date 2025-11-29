@@ -2,43 +2,163 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prenotazione - Gustino SPA</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        * { box-sizing: border-box; }
+        body { 
+            font-family: Arial, sans-serif; 
+            background: url('{{ url_for("static", filename="images/capybara.jpeg") }}') no-repeat center center fixed;
+            background-size: cover;
+            padding: 20px;
+            margin: 0;
+            min-height: 100vh;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: -1;
+        }
+        .container { 
+            background: rgba(255, 255, 255, 0.95); 
+            padding: 30px; 
+            border-radius: 10px; 
+            max-width: 600px; 
+            margin: auto;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        h2 { 
+            color: #667eea; 
+            font-size: 24px;
+            margin-bottom: 10px;
+            word-wrap: break-word;
+        }
+        .special-badge { 
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            color: #333;
+            padding: 6px 12px;
+            border-radius: 20px;
+            display: inline-block;
+            font-size: 12px;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+        .bookings-list {
+            background: rgba(249, 249, 249, 0.95);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #667eea;
+        }
+        .bookings-list h3 {
+            margin-top: 0;
+            color: #667eea;
+            font-size: 18px;
+        }
+        .booking-item {
+            background: white;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            word-wrap: break-word;
+        }
+        .booking-item strong {
+            color: #667eea;
+        }
+        h3 { color: #667eea; font-size: 20px; margin-top: 20px; }
+        label { display: block; margin-top: 15px; font-weight: bold; color: #333; font-size: 14px; }
+        input[type="date"], input[type="time"], input[type="text"], select { 
+            width: 100%; 
+            padding: 12px; 
+            margin: 5px 0 15px 0; 
+            border: 2px solid #ccc; 
+            border-radius: 5px; 
+            box-sizing: border-box; 
+            font-size: 16px;
+        }
+        input:focus, select:focus {
+            border-color: #667eea;
+            outline: none;
+        }
+        button { 
+            padding: 14px 20px; 
+            background: #667eea; 
+            color: white; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-size: 16px; 
+            width: 100%;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        button:hover { background: #5568d3; }
+        .flash { 
+            background: #d4edda; 
+            border: 1px solid #c3e6cb; 
+            color: #155724; 
+            padding: 12px; 
+            margin: 15px 0; 
+            border-radius: 5px;
+            word-wrap: break-word;
+        }
+        @media (max-width: 768px) {
+            body { 
+                padding: 10px;
+                background: url('{{ url_for("static", filename="images/capybara_small.jpeg") }}') no-repeat center center !important;
+                background-size: cover !important;
+                background-attachment: scroll !important;
+            }
+            .container { padding: 20px; }
+            h2 { font-size: 20px; }
+            .special-badge { font-size: 11px; padding: 5px 10px; display: block; margin: 10px 0; text-align: center; }
+            h3 { font-size: 18px; }
+            label { font-size: 13px; }
+            input[type="date"], input[type="time"], select { font-size: 14px; padding: 10px; }
+            button { padding: 12px; font-size: 14px; }
+        }
+        @media (max-width: 480px) {
+            body {
+                background: url('{{ url_for("static", filename="images/capybara_small.jpeg") }}') no-repeat center center !important;
+                background-size: auto !important;
+                background-attachment: scroll !important;
+                background-position: center !important;
+            }
+            .container { padding: 15px; max-width: 95%; }
+            h2 { font-size: 18px; }
+            .special-badge { font-size: 10px; padding: 4px 8px; }
+            h3 { font-size: 16px; }
+            label { font-size: 12px; }
+            input[type="date"], input[type="time"], select { font-size: 13px; padding: 8px; }
+            button { padding: 10px; font-size: 13px; border-radius: 8px; }
+        }
+    </style>
 </head>
 <body>
 <div class="container">
-    <h2>Prenotazione per {{ user.name }}</h2>
+    <h2>📅 Prenotazione per {{ user.name }}
+        {% if user.code_used == "20121997" %}
+            <span class="special-badge">🎁 VIP - Massaggi Illimitati</span>
+        {% endif %}
+    </h2>
 
-    {% if user.reservations %}
-        <h3>Prenotazioni esistenti:</h3>
-        <ul>
-            {% for res in user.reservations %}
-                <li>{{ res.date.strftime('%d/%m/%Y') }} dalle {{ res.start_time.strftime('%H:%M') }} alle {{ res.end_time.strftime('%H:%M') }} - {{ res.service }}</li>
-            {% endfor %}
-        </ul>
-    {% endif %}
-
-    <h3>Nuova Prenotazione</h3>
+    <h3>✨ Nuova Prenotazione</h3>
     <form method="POST">
-        <label>Data:</label>
+        <label>📅 Data:</label>
         <input type="date" name="date" required>
 
-        <label>Ora inizio:</label>
-        <input type="time" name="start_time" required>
+        <label>🕐 Ora:</label>
+        <input type="time" name="time" required>
 
-        <label>Ora fine:</label>
-        <input type="time" name="end_time" required>
-
-        <label>Servizio:</label>
-        <input type="text" name="service" placeholder="Massaggio, SPA ecc." required>
-
-        <button type="submit">Prenota</button>
+        <button type="submit">✅ Conferma Prenotazione</button>
     </form>
-
-    <p>Chatta con il nostro bot Telegram:</p>
-    <a href="https://t.me/{{ bot_username }}" target="_blank">
-        <button type="button">Apri Telegram Bot</button>
-    </a>
 
     {% with messages = get_flashed_messages() %}
         {% if messages %}
@@ -47,6 +167,18 @@
             {% endfor %}
         {% endif %}
     {% endwith %}
+
+    {% if user.bookings %}
+        <div class="bookings-list">
+            <h3>📋 Tue Prenotazioni Attive:</h3>
+            {% for booking in user.bookings %}
+                <div class="booking-item">
+                    <strong>📅 {{ booking.date }}</strong> alle <strong>🕐 {{ booking.time }}</strong>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
 </div>
+<script src="{{ url_for('static', filename='js/responsive.js') }}"></script>
 </body>
 </html>

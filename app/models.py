@@ -15,6 +15,7 @@ class Booking(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     date = db.Column(db.String(50))
     time = db.Column(db.String(50))
+    service = db.Column(db.String(100))
 
     user = db.relationship('User', backref=db.backref('bookings', lazy=True))
 

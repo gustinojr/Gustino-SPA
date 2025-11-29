@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Premio Speciale 🎁 - Gustino SPA</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+    * { box-sizing: border-box; }
+    body { 
+      font-family: Arial, sans-serif; 
+      background: url('{{ url_for("static", filename="images/capybara.jpeg") }}') no-repeat center center fixed;
+      background-size: cover;
+      padding: 20px;
+      margin: 0;
+      min-height: 100vh;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: -1;
+    }
+    .container { 
+      background: rgba(255, 255, 255, 0.95); 
+      padding: 40px; 
+      border-radius: 15px; 
+      max-width: 600px; 
+      margin: 50px auto; 
+      text-align: center;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    }
+    @media (max-width: 768px) {
+      body { 
+        padding: 10px;
+        background: url('{{ url_for("static", filename="images/capybara_small.jpeg") }}') no-repeat center center !important;
+        background-size: cover !important;
+        background-attachment: scroll !important;
+      }
+      .container { padding: 25px; margin: 20px auto; }
+      h2 { font-size: 26px; }
+      h3 { font-size: 16px; }
+      .prize-box { padding: 15px; }
+      .prize-box strong { font-size: 18px; }
+      input[type="text"], input[type="email"] { font-size: 14px; padding: 10px; }
+      button { font-size: 16px; padding: 12px 20px; }
+      .emoji { font-size: 36px; }
+    }
+    @media (max-width: 480px) {
+      body {
+        background: url('{{ url_for("static", filename="images/capybara_small.jpeg") }}') no-repeat center center !important;
+        background-size: auto !important;
+        background-attachment: scroll !important;
+        background-position: center !important;
+      }
+      .container { padding: 20px; margin: 10px auto; max-width: 95%; }
+      h2 { font-size: 22px; }
+      h3 { font-size: 14px; }
+      .prize-box { padding: 12px; }
+      .prize-box strong { font-size: 16px; }
+      input[type="text"], input[type="email"] { font-size: 13px; padding: 8px; }
+      button { font-size: 14px; padding: 10px 16px; border-radius: 8px; }
+      .emoji { font-size: 32px; }
+    }
+    h2 { 
+      color: #667eea; 
+      font-size: 32px;
+      margin-bottom: 10px;
+    }
+    h3 { 
+      color: #333; 
+      font-size: 20px;
+      line-height: 1.6;
+      margin: 20px 0;
+    }
+    .prize-box {
+      background: #fff3cd;
+      border: 2px solid #ffc107;
+      border-radius: 10px;
+      padding: 20px;
+      margin: 30px 0;
+    }
+    .prize-box strong {
+      color: #d32f2f;
+      font-size: 22px;
+    }
+    form { 
+      margin-top: 30px; 
+    }
+    input[type="text"], input[type="email"] { 
+      width: 100%; 
+      padding: 12px; 
+      margin: 10px 0; 
+      border: 2px solid #ddd; 
+      border-radius: 8px; 
+      box-sizing: border-box;
+      font-size: 16px;
+    }
+    input[type="text"]:focus, input[type="email"]:focus {
+      border-color: #667eea;
+      outline: none;
+    }
+    button { 
+      padding: 15px 30px; 
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white; 
+      border: none; 
+      border-radius: 8px; 
+      cursor: pointer; 
+      font-size: 18px;
+      font-weight: bold;
+      width: 100%;
+      margin-top: 10px;
+      transition: transform 0.2s;
+    }
+    button:hover { 
+      transform: scale(1.05);
+    }
+    .flash { 
+      background: #d4edda; 
+      border: 1px solid #c3e6cb;
+      color: #155724;
+      padding: 15px; 
+      margin: 20px 0; 
+      border-radius: 8px;
+    }
+    .emoji {
+      font-size: 48px;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="flash">
+          {% for message in messages %}
+            <p>{{ message }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <div class="emoji">🎁 🎉</div>
+    <h2>Premio Speciale!</h2>
+    <h3>
+      Congratulazioni! Sei il nostro <b>cliente speciale</b> 🎉
+    </h3>
+    
+    <div class="prize-box">
+      <p style="font-size: 18px; margin: 10px 0;">Hai diritto a:</p>
+      <strong>Sessioni di massaggio ILLIMITATE!</strong>
+      <p style="margin-top: 20px; font-size: 16px;">
+        📅 Valido dal <b>20/12/2025</b> al <b>06/01/2026</b>
+      </p>
+    </div>
+
+    <p style="font-size: 16px; color: #666;">Inserisci i tuoi dati per confermare il premio:</p>
+
+    <form method="POST">
+      <input type="hidden" name="chat_id" value="{{ chat_id }}">
+      <input type="hidden" name="promo_code" value="20121997">
+      <input type="text" name="name" placeholder="Nome Completo" required>
+      <button type="submit">🎁 Conferma e Ricevi Premio</button>
+    </form>
+  </div>
+  <script src="{{ url_for('static', filename='js/responsive.js') }}"></script>
+</body>
+</html>

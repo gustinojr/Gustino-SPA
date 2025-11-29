@@ -1,29 +1,202 @@
 <!DOCTYPE html>
-<html>
+<html lang="it">
 <head>
-    <title>Gustino SPA</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gustino SPA - Benvenuto</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        * { box-sizing: border-box; }
+        body { 
+            font-family: Arial, sans-serif; 
+            background: url('{{ url_for("static", filename="images/capybara.jpeg") }}') no-repeat center center fixed;
+            background-size: cover;
+            padding: 20px;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: -1;
+        }
+        .container { 
+            background: rgba(255, 255, 255, 0.95); 
+            padding: 40px; 
+            border-radius: 15px; 
+            max-width: 500px; 
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        @media (max-width: 768px) {
+            body { 
+                padding: 10px;
+                background: url('{{ url_for("static", filename="images/capybara_small.jpeg") }}') no-repeat center center !important;
+                background-size: cover !important;
+                background-attachment: scroll !important;
+            }
+            .container { padding: 25px; }
+            h2 { font-size: 26px; }
+            p { font-size: 14px; }
+            input[type="text"] { font-size: 14px; padding: 10px; }
+            button { font-size: 16px; padding: 12px 20px; }
+            .emoji { font-size: 36px; }
+        }
+        @media (max-width: 480px) {
+            body {
+                background: url('{{ url_for("static", filename="images/capybara_small.jpeg") }}') no-repeat center center !important;
+                background-size: auto !important;
+                background-attachment: scroll !important;
+                background-position: center !important;
+            }
+            .container { padding: 20px; max-width: 95%; }
+            h2 { font-size: 22px; }
+            p { font-size: 13px; }
+            input[type="text"] { font-size: 13px; padding: 9px; }
+            button { font-size: 14px; padding: 10px 16px; border-radius: 8px; }
+            .emoji { font-size: 32px; }
+        }
+        h2 { 
+            color: #667eea; 
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        p {
+            color: #666;
+            font-size: 16px;
+            margin: 20px 0;
+        }
+        label {
+            display: block;
+            text-align: left;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        input[type="text"] { 
+            width: 100%; 
+            padding: 12px; 
+            margin-bottom: 20px; 
+            border: 2px solid #ddd; 
+            border-radius: 8px; 
+            box-sizing: border-box;
+            font-size: 16px;
+            text-transform: uppercase;
+        }
+        input[type="text"]:focus {
+            border-color: #667eea;
+            outline: none;
+        }
+        button { 
+            padding: 15px 30px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-size: 18px;
+            font-weight: bold;
+            width: 100%;
+            transition: transform 0.2s;
+        }
+        button:hover { 
+            transform: scale(1.05);
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .emoji {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        .note {
+            font-size: 12px;
+            color: #999;
+            margin-top: 15px;
+        }
+    </style>
 </head>
 <body>
-    <h2>Benvenuto!</h2>
-    <p>Clicca il pulsante per avviare il bot e aprire Telegram.</p>
-    <button id="startBotBtn">Attiva Bot</button>
+    <div class="container">
+        <div class="emoji">💆‍♀️ ✨</div>
+        <h2>Benvenuto a Gustino SPA!</h2>
+        <p>Inserisci il tuo codice voucher per iniziare</p>
+        
+        <label for="promoCode">🎟️ Codice Voucher:</label>
+        <input type="text" id="promoCode" required>
+        
+        <button id="startBotBtn">🚀 Attiva Bot e Continua</button>
+        
+        <p class="note">Ti reindirizzeremo su Telegram per completare la registrazione</p>
+    </div>
 
     <script>
     document.getElementById("startBotBtn").addEventListener("click", async () => {
+        const promoCode = document.getElementById("promoCode").value.trim().toUpperCase();
+        
+        if (!promoCode) {
+            alert("⚠️ Inserisci un codice voucher per continuare");
+            return;
+        }
+
         try {
+            // Disabilita il bottone
+            const btn = document.getElementById("startBotBtn");
+            btn.disabled = true;
+            btn.textContent = "⏳ Verifica in corso...";
+
+            // Verifica se il codice esiste già nel database
+            const checkResponse = await fetch(`/check-promo-code?code=${encodeURIComponent(promoCode)}`);
+            const checkData = await checkResponse.json();
+
+            if (checkData.exists && checkData.user_id) {
+                // Codice già usato - vai diretto al booking
+                btn.textContent = "✅ Codice trovato! Reindirizzamento...";
+                setTimeout(() => {
+                    window.location.href = `/booking/${checkData.user_id}`;
+                }, 1000);
+                return;
+            }
+
+            // Codice nuovo - continua con attivazione bot normale
+            btn.textContent = "⏳ Attivazione bot...";
+            
             // Avvia il bot sul server
             await fetch("/start-bot");
 
             // Apri Telegram in una nuova scheda
             window.open("https://t.me/GustinoSpa_bot", "_blank");
 
-            // Reindirizza la pagina corrente a wait-for-chatid
-            window.location.href = "/wait-for-chatid";
+            // Reindirizza la pagina corrente a wait-for-chatid con promo code
+            window.location.href = `/wait-for-chatid?promo_code=${encodeURIComponent(promoCode)}`;
 
         } catch (err) {
             console.error("Errore avviando il bot:", err);
+            alert("❌ Errore durante l'attivazione. Riprova.");
+            btn.disabled = false;
+            btn.textContent = "🚀 Attiva Bot e Continua";
+        }
+    });
+
+    // Gestisci invio con Enter
+    document.getElementById("promoCode").addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
+            document.getElementById("startBotBtn").click();
         }
     });
     </script>
+    <script src="{{ url_for('static', filename='js/responsive.js') }}"></script>
 </body>
 </html>

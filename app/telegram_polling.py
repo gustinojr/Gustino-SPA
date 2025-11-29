@@ -1,9 +1,16 @@
 import threading
 import telebot
 import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Token del bot
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+if not TOKEN:
+    raise RuntimeError("TELEGRAM_BOT_TOKEN not set in environment variables!")
+
 bot = telebot.TeleBot(TOKEN)
 
 # Stato globale del bot
@@ -34,9 +41,13 @@ def start_polling():
     print("Bot avviato correttamente.")
     return True  # ritorna True se il bot è stato avviato
 
-# Handler /start
-@bot.message_handler(commands=["start"])
-def handle_start(message):
+# Handler per tutti i messaggi
+@bot.message_handler(func=lambda message: True)
+def handle_message(message):
     global chat_id_global
     chat_id_global = message.chat.id  # salva il chat_id globale
-    bot.reply_to(message, "Ciao! Bot avviato correttamente.")
+    
+    if message.text and message.text.startswith('/start'):
+        bot.reply_to(message, "Ciao! Torna sul sito per completare la registrazione.")
+    else:
+        bot.reply_to(message, "Messaggio ricevuto! Torna sul sito per continuare.")
