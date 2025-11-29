@@ -6,7 +6,7 @@ import time
 
 bot_bp = Blueprint("bot", __name__)
 
-TOKEN = os.getenv("TELEGRAM_TOKEN")
+TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 bot = telebot.TeleBot(TOKEN)
 
 current_chat_id = None
