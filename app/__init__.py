@@ -8,10 +8,8 @@ def create_app():
     app = Flask(__name__)
     app.secret_key = os.getenv("SECRET_KEY", "supersecretkey")
 
-    # Registrazione Blueprint
     app.register_blueprint(home_bp)
     app.register_blueprint(register_bp)
     app.register_blueprint(bot_bp)
-
 
     return app
