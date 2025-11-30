@@ -90,6 +90,7 @@
 <div class="card">
     <h2>Attendi…</h2>
     <p class="loading">Sto recuperando il tuo Chat ID…</p>
+    
     <a id="telegram-alert" class="alert-telegram" href="https://t.me/GustinoSpa_bot" target="_blank" onclick="hideAlert()">
         📱 Apri Telegram Bot
     </a>
@@ -112,6 +113,9 @@ async function checkChat() {
         let data = await r.json();
 
         if (data.chat_id) {
+            // Nascondi il pulsante Telegram quando il chat_id è stato trovato
+            hideAlert();
+            
             // Controlla se è un utente esistente (ritorno)
             if (data.existing_user) {
                 document.getElementById("result").innerHTML =
