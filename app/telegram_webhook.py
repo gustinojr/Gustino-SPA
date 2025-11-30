@@ -54,8 +54,33 @@ def webhook():
         update = telebot.types.Update.de_json(json_string)
         print(f"✅ Update decodificato: update_id={update.update_id}")
         
-        bot.process_new_updates([update])
-        print(f"✅ Update processato")
+        # Debug: verifica contenuto update
+        if update.message:
+            chat_id = update.message.chat.id
+            print(f"🔍 Message trovato: chat_id={chat_id}, text={update.message.text}")
+            
+            # Elabora direttamente il messaggio invece di usare process_new_updates
+            import time
+            pending_chat_ids[chat_id] = time.time()
+            print(f"💾 Chat ID salvato! pending_chat_ids: {pending_chat_ids}")
+            
+            # Pulisci chat_id vecchi (oltre 10 minuti)
+            current_time = time.time()
+            to_remove = [cid for cid, timestamp in pending_chat_ids.items() if current_time - timestamp > 600]
+            for cid in to_remove:
+                del pending_chat_ids[cid]
+            
+            # Rispondi al messaggio
+            try:
+                if update.message.text and update.message.text.startswith('/start'):
+                    bot.send_message(chat_id, "Ciao! Torna sul sito per completare la registrazione.")
+                else:
+                    bot.send_message(chat_id, "Messaggio ricevuto! Torna sul sito per continuare.")
+                print(f"✅ Risposta inviata a {chat_id}")
+            except Exception as e:
+                print(f"⚠️ Errore invio risposta: {e}")
+        else:
+            print(f"⚠️ Nessun message nell'update")
         
         return jsonify({"status": "ok"}), 200
     else:
