@@ -89,18 +89,21 @@ def check_chatid():
 @home_bp.route("/reset-db")
 def reset_db():
     try:
-        # Elimina tutti i dati usando SQL diretto per evitare problemi con foreign key
-        db.session.execute(db.text("DELETE FROM booking"))
-        db.session.execute(db.text("DELETE FROM reservation"))
-        db.session.execute(db.text("DELETE FROM \"user\""))
+        # Elimina tutte le tabelle
+        db.drop_all()
         db.session.commit()
         
-        # Reset chat_id_global
-        telegram_polling.chat_id_global = None
+        # Ricrea tutte le tabelle
+        db.create_all()
+        db.session.commit()
+        
+        # Reset chat_id_global solo se in modalità polling
+        if not USE_WEBHOOK:
+            telegram_polling.chat_id_global = None
         
         return jsonify({
             "success": True,
-            "message": "Database resettato con successo"
+            "message": "Database resettato e ricreato con successo"
         })
     except Exception as e:
         db.session.rollback()
