@@ -35,6 +35,22 @@ def check_promo_code():
 # Avvia il bot e reindirizza alla pagina di attesa
 @home_bp.route("/start-bot")
 def start_bot():
+    # Controlla se c'è già un promo_code nei parametri
+    promo_code = request.args.get('promo_code', '').strip()
+    
+    # Se c'è un promo_code, verifica se l'utente esiste già
+    if promo_code:
+        user = User.query.filter_by(code_used=promo_code.upper()).first()
+        if user and user.chat_id:
+            # Se ha nome, promo e chat_id --> vai al booking
+            if user.name:
+                print(f"✅ Utente completo (nome+promo+chat_id): {user.name}")
+                return redirect(url_for("booking_bp.booking", user_id=user.id))
+            # Se ha solo promo e chat_id ma NON nome --> vai alla registrazione
+            else:
+                print(f"⚠️ Utente incompleto (promo+chat_id ma senza nome): {user.chat_id}")
+                return redirect(url_for("register_bp.register", chat_id=user.chat_id, promo_code=promo_code.upper()))
+    
     # In modalità webhook, il bot è sempre attivo
     if USE_WEBHOOK:
         print("✅ Modalità WEBHOOK - bot sempre attivo")
@@ -47,7 +63,11 @@ def start_bot():
             print("✅ Bot già in esecuzione")
         print(f"📊 Stato bot: bot_running={telegram_polling.bot_running}, chat_id_global={telegram_polling.chat_id_global}")
     
-    return redirect(url_for("home_bp.wait_for_chatid"))
+    # Passa il promo_code alla pagina di attesa
+    redirect_url = url_for("home_bp.wait_for_chatid")
+    if promo_code:
+        redirect_url += f"?promo_code={promo_code}"
+    return redirect(redirect_url)
 
 # Pagina di attesa per ottenere chat_id
 @home_bp.route("/wait-for-chatid")
