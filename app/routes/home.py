@@ -96,10 +96,9 @@ def reset_db():
         # Ricrea tutte le tabelle
         db.create_all()
         db.session.commit()
-        
-        # Reset chat_id_global solo se in modalità polling
-        if not USE_WEBHOOK:
-            telegram_polling.chat_id_global = None
+
+        # Reset chat_id_global
+        telegram_polling.chat_id_global = None
         
         return jsonify({
             "success": True,
