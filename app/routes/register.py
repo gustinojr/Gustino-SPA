@@ -1,6 +1,7 @@
 from flask import Blueprint, request, render_template, redirect, flash, current_app, url_for
 from app.models import User, db
 from app.telegram_utils import tg_send
+from config import Config
 
 register_bp = Blueprint("register_bp", __name__)
 
@@ -10,7 +11,7 @@ def register():
     chat_id = request.args.get('chat_id')
 
     # Se il promo è speciale, redirect alla pagina premio
-    if promo == "20121997" and request.method == 'GET':
+    if promo == Config.SPECIAL_CODE and request.method == 'GET':
         return redirect(url_for('register_bp.special_prize', chat_id=chat_id, promo_code=promo))
 
     if request.method == 'GET':
@@ -100,7 +101,7 @@ def special_prize():
         owner_message = (
             f"⭐ PRIMO CLIENTE REGISTRATO! 🎉\n\n"
             f"👤 Nome: {user.name}\n"
-            f"🎟️ Codice: 20121997\n"
+            f"🎟️ Codice: {Config.SPECIAL_CODE}\n"
             f"🎁 Premio: Massaggi ILLIMITATI\n"
             f"📅 Valido: 20/12/2025 - 31/01/2026"
         )

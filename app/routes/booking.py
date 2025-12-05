@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, redirect, flash, current_
 from datetime import datetime
 from app.models import Booking, User, db
 from app.telegram_utils import tg_send
+from config import Config
 
 booking_bp = Blueprint('booking_bp', __name__)
 
@@ -45,4 +46,4 @@ def booking(user_id):
         flash("✅ Prenotazione completata! Riceverai una conferma su Telegram.")
         return redirect(f'/booking/{user.id}')
     
-    return render_template('booking.html', user=user)
+    return render_template('booking.html', user=user, special_code=Config.SPECIAL_CODE)

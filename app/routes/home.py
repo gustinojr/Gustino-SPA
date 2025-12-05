@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, jsonify, request
 import app.telegram_polling as telegram_polling  # importa il modulo intero
 from app.models import User, db, Booking
+from config import Config
 import os
 
 home_bp = Blueprint("home_bp", __name__)
@@ -27,7 +28,7 @@ def check_promo_code():
             "exists": True,
             "user_id": user.id,
             "user_name": user.name,
-            "is_special": user.code_used == "20121997"
+            "is_special": user.code_used == Config.SPECIAL_CODE
         })
     
     return jsonify({"exists": False})
@@ -100,7 +101,7 @@ def check_chatid():
             "existing_user": True,
             "user_id": existing_user.id,
             "user_name": existing_user.name,
-            "is_special": existing_user.code_used == "20121997"
+            "is_special": existing_user.code_used == Config.SPECIAL_CODE
         })
     
     return jsonify({"chat_id": chat_id, "existing_user": False})

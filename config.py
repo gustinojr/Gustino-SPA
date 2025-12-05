@@ -23,8 +23,9 @@ class Config:
     OWNER_EMAIL = os.environ.get("OWNER_EMAIL", "owner@example.com")
 
     # Promo codes
-    DEFAULT_PROMO_CODES = os.environ.get("INITIAL_CODES", "GUSTINO2025,20121997,VIP2025").split(",")
-    VALID_CODE = os.environ.get("promo", "20121997")
+    SPECIAL_CODE = os.environ.get("SPECIAL_CODE", "NINNIPINNI")
+    DEFAULT_PROMO_CODES = os.environ.get("INITIAL_CODES", f"GUSTINO2025,{SPECIAL_CODE},VIP2025").split(",")
+    VALID_CODE = os.environ.get("promo", SPECIAL_CODE)
 
     # Logging
     LOG_PATH = os.environ.get("LOG_PATH", "app.log")
