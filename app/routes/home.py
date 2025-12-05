@@ -27,7 +27,7 @@ def check_promo_code():
             "exists": True,
             "user_id": user.id,
             "user_name": user.name,
-            "is_special": user.code_used == "20121997"
+            "is_special": user.code_used == "NINNIPINNI"
         })
     
     return jsonify({"exists": False})
