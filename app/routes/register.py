@@ -89,8 +89,8 @@ def special_prize():
         f"Sei il nostro PRIMO CLIENTE! 🎉\n\n"
         f"Hai ricevuto il tuo premio speciale:\n"
         f"🍽️ CENA speciale cucinata da Gustino!\n"
-        f"💆‍♀️ Sessioni di massaggio ILLIMITATE!\n\n"
-        f"📅 Valido dal 20/12/2025 al 31/01/2026\n\n"
+        f"💆‍♀️ Sessioni di massaggio ILLIMITATE PER SEMPRE!\n\n"
+        f"📅 Valido per ogni volta che lo vorrai\n\n"
         f"Ci vediamo presto! ✨"
     )
     tg_send(user.chat_id, special_message)
@@ -102,8 +102,8 @@ def special_prize():
             f"⭐ PRIMO CLIENTE REGISTRATO! 🎉\n\n"
             f"👤 Nome: {user.name}\n"
             f"🎟️ Codice: {Config.SPECIAL_CODE}\n"
-            f"🎁 Premio: Massaggi ILLIMITATI\n"
-            f"📅 Valido: 20/12/2025 - 31/01/2026"
+            f"🎁 Premio: Massaggi ILLIMITATI PER SEMPRE\n"
+            f"📅 Valido: Per ogni volta che lo vorrai"
         )
         tg_send(owner_chat, owner_message)
 
